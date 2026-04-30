@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Cell,
@@ -34,6 +35,14 @@ const DAY_MINUTES = 24 * 60;
 const todayLabel = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "full",
 }).format(new Date());
+const todayValue = (() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = (today.getMonth() + 1).toString().padStart(2, "0");
+  const date = today.getDate().toString().padStart(2, "0");
+
+  return `${year}-${month}-${date}`;
+})();
 
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -172,9 +181,16 @@ export default function DashboardPage() {
     return () => window.clearInterval(intervalId);
   }, [runningStartedAt]);
 
-  const recordedMinutes = useMemo(
-    () => records.reduce((total, record) => total + record.minutes, 0),
+  const todayRecords = useMemo(
+    () =>
+      records.filter(
+        (record) => record.date === undefined || record.date === todayValue,
+      ),
     [records],
+  );
+  const recordedMinutes = useMemo(
+    () => todayRecords.reduce((total, record) => total + record.minutes, 0),
+    [todayRecords],
   );
   const unrecordedMinutes = Math.max(DAY_MINUTES - recordedMinutes, 0);
   const recordedRatio = Math.min(recordedMinutes / DAY_MINUTES, 1);
@@ -189,7 +205,7 @@ export default function DashboardPage() {
         { id: string; name: string; value: number; color: string }
       >();
 
-      records.forEach((record) => {
+      todayRecords.forEach((record) => {
         const tag = getTagForRecord(record, tags);
         const id = tag?.id ?? `legacy-${record.tag}`;
         const currentValue = groupedRecords.get(id)?.value ?? 0;
@@ -206,7 +222,7 @@ export default function DashboardPage() {
         (entry) => entry.value > 0,
       );
     },
-    [records, tags],
+    [todayRecords, tags],
   );
 
   const handleStart = () => {
@@ -238,11 +254,13 @@ export default function DashboardPage() {
       ...currentRecords,
       {
         id: stoppedAt.getTime(),
+        date: todayValue,
         tagId: runningRecord.tagId,
         tag: runningRecord.tagName,
         start: formatRecordTime(runningRecord.startedAt),
         end: formatRecordTime(stoppedAt),
         minutes,
+        durationMinutes: minutes,
       },
     ]);
     setRunningRecord(null);
@@ -404,6 +422,12 @@ export default function DashboardPage() {
               活動タグがありません。/tags でタグを追加してください。
             </p>
           ) : null}
+          <Link
+            href="/records/new"
+            className="mt-4 inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+          >
+            手動で追加
+          </Link>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -475,7 +499,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4 flex flex-col gap-3">
-              {records.map((record) => {
+              {todayRecords.map((record) => {
                 const tag = getTagForRecord(record, tags);
 
                 return (
@@ -491,7 +515,9 @@ export default function DashboardPage() {
                       <p className="truncate text-sm font-semibold text-zinc-950">
                         {record.start}-{record.end} {tag?.name ?? record.tag}
                       </p>
-                      <p className="text-xs text-zinc-500">時間記録</p>
+                      <p className="truncate text-xs text-zinc-500">
+                        {record.memo ? record.memo : "時間記録"}
+                      </p>
                     </div>
                     <p className="text-sm font-semibold text-zinc-700">
                       {formatMinutes(record.minutes)}

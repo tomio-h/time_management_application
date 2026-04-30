@@ -8,11 +8,14 @@ export type ActivityTag = {
 
 export type ActivityRecord = {
   id: number;
+  date?: string;
   tagId?: string;
   tag: string;
   start: string;
   end: string;
   minutes: number;
+  durationMinutes?: number;
+  memo?: string;
 };
 
 export const MAX_ACTIVITY_TAGS = 20;
@@ -126,13 +129,19 @@ function isStoredActivityRecord(value: unknown): value is ActivityRecord {
     typeof value.id === "number" &&
     Number.isFinite(value.id) &&
     (value.tagId === undefined || typeof value.tagId === "string") &&
+    (value.date === undefined || typeof value.date === "string") &&
     typeof value.tag === "string" &&
     value.tag.trim().length > 0 &&
     typeof value.start === "string" &&
     typeof value.end === "string" &&
     typeof value.minutes === "number" &&
     Number.isFinite(value.minutes) &&
-    value.minutes >= 0
+    value.minutes >= 0 &&
+    (value.durationMinutes === undefined ||
+      (typeof value.durationMinutes === "number" &&
+        Number.isFinite(value.durationMinutes) &&
+        value.durationMinutes >= 0)) &&
+    (value.memo === undefined || typeof value.memo === "string")
   );
 }
 
