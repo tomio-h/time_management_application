@@ -1,0 +1,327 @@
+"use client";
+
+import Link from "next/link";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  createActivityTag,
+  getSortedActiveTags,
+  initialActivityTags,
+  MAX_ACTIVITY_TAGS,
+  parseStoredTags,
+  TAGS_STORAGE_KEY,
+  type ActivityTag,
+} from "../lib/time-wallet-storage";
+
+const DEFAULT_TAG_COLOR = "#2563eb";
+const TAG_COLOR_OPTIONS = [
+  { value: "#2563EB", label: "授業系の青" },
+  { value: "#0F766E", label: "課題系の青緑" },
+  { value: "#7C3AED", label: "研究系の紫" },
+  { value: "#C2410C", label: "バイト系のオレンジ" },
+  { value: "#4F46E5", label: "睡眠系の藍色" },
+  { value: "#DB2777", label: "スマホ系のピンク" },
+  { value: "#16A34A", label: "趣味系の緑" },
+  { value: "#D97706", label: "休憩系の黄土色" },
+  { value: "#22C55E", label: "明るい緑" },
+  { value: "#EF4444", label: "赤" },
+  { value: "#64748B", label: "グレー" },
+  { value: "#F59E0B", label: "黄色" },
+];
+
+type ColorPickerProps = {
+  value: string;
+  onChange: (color: string) => void;
+  label: string;
+};
+
+function normalizeColor(color: string) {
+  return color.toUpperCase();
+}
+
+function ColorPicker({ value, onChange, label }: ColorPickerProps) {
+  const selectedColor = normalizeColor(value);
+
+  return (
+    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-zinc-700">{label}</p>
+        <label className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+          詳細
+          <input
+            type="color"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {TAG_COLOR_OPTIONS.map((color) => {
+          const isSelected = selectedColor === color.value;
+
+          return (
+            <button
+              key={color.value}
+              type="button"
+              aria-label={color.label}
+              aria-pressed={isSelected}
+              onClick={() => onChange(color.value)}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-transform hover:scale-105 ${
+                isSelected
+                  ? "border-zinc-950 ring-2 ring-zinc-950 ring-offset-2"
+                  : "border-white ring-1 ring-zinc-200"
+              }`}
+              style={{ backgroundColor: color.value }}
+            >
+              {isSelected ? (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-zinc-950">
+                  ✓
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default function TagsPage() {
+  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
+    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
+
+    const timeoutId = window.setTimeout(() => {
+      if (parsedTags) {
+        setTags(parsedTags);
+      }
+
+      setIsStorageReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+  }, [isStorageReady, tags]);
+
+  const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
+  const canAddTag = activeTags.length < MAX_ACTIVITY_TAGS;
+
+  const handleAddTag = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = newTagName.trim();
+
+    if (!trimmedName) {
+      setMessage("タグ名を入力してください。");
+      return;
+    }
+
+    if (!canAddTag) {
+      setMessage(`活動タグは${MAX_ACTIVITY_TAGS}個までです。`);
+      return;
+    }
+
+    if (
+      activeTags.some(
+        (tag) => tag.name.toLowerCase() === trimmedName.toLowerCase(),
+      )
+    ) {
+      setMessage("同じ名前の活動タグがあります。");
+      return;
+    }
+
+    const nextSortOrder =
+      tags.reduce((maxOrder, tag) => Math.max(maxOrder, tag.sortOrder), 0) + 1;
+
+    setTags((currentTags) => [
+      ...currentTags,
+      createActivityTag(trimmedName, newTagColor, nextSortOrder),
+    ]);
+    setNewTagName("");
+    setNewTagColor(DEFAULT_TAG_COLOR);
+    setMessage("活動タグを追加しました。");
+  };
+
+  const handleRenameTag = (tagId: string, nextName: string) => {
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      setMessage("タグ名を入力してください。");
+      return false;
+    }
+
+    if (
+      activeTags.some(
+        (tag) =>
+          tag.id !== tagId &&
+          tag.name.toLowerCase() === trimmedName.toLowerCase(),
+      )
+    ) {
+      setMessage("同じ名前の活動タグがあります。");
+      return false;
+    }
+
+    setTags((currentTags) =>
+      currentTags.map((tag) =>
+        tag.id === tagId ? { ...tag, name: trimmedName } : tag,
+      ),
+    );
+    setMessage("活動タグ名を更新しました。");
+    return true;
+  };
+
+  const handleChangeColor = (tagId: string, color: string) => {
+    setTags((currentTags) =>
+      currentTags.map((tag) => (tag.id === tagId ? { ...tag, color } : tag)),
+    );
+    setMessage("活動タグの色を更新しました。");
+  };
+
+  const handleDeleteTag = (tagToDelete: ActivityTag) => {
+    if (!window.confirm(`「${tagToDelete.name}」を削除しますか？`)) {
+      return;
+    }
+
+    setTags((currentTags) =>
+      currentTags.map((tag) =>
+        tag.id === tagToDelete.id ? { ...tag, isActive: false } : tag,
+      ),
+    );
+    setMessage("活動タグを削除しました。");
+  };
+
+  return (
+    <main className="min-h-screen bg-zinc-100 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+              活動タグ管理
+            </h1>
+          </div>
+          <Link
+            href="/dashboard"
+            className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
+          >
+            ダッシュボードへ
+          </Link>
+        </header>
+
+        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium text-zinc-500">
+              {activeTags.length}/{MAX_ACTIVITY_TAGS}
+            </p>
+            <h2 className="text-xl font-semibold text-zinc-950">
+              活動タグを追加
+            </h2>
+          </div>
+
+          <form
+            onSubmit={handleAddTag}
+            className="mt-4 grid gap-3 lg:grid-cols-[1fr_1.4fr_auto]"
+          >
+            <input
+              type="text"
+              value={newTagName}
+              onChange={(event) => setNewTagName(event.target.value)}
+              placeholder="タグ名"
+              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+            />
+            <ColorPicker
+              value={newTagColor}
+              onChange={setNewTagColor}
+              label="タグ色"
+            />
+            <button
+              type="submit"
+              disabled={!canAddTag}
+              className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
+            >
+              追加する
+            </button>
+          </form>
+
+          {message ? (
+            <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+              {message}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <div>
+            <p className="text-sm font-medium text-zinc-500">現在の活動タグ</p>
+            <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              活動タグ一覧
+            </h2>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3">
+            {activeTags.map((tag) => (
+              <div
+                key={tag.id}
+                className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 lg:grid-cols-[1fr_1.4fr_auto] lg:items-start"
+              >
+                <input
+                  key={`${tag.id}-${tag.name}`}
+                  type="text"
+                  defaultValue={tag.name}
+                  onBlur={(event) => {
+                    const isUpdated = handleRenameTag(
+                      tag.id,
+                      event.currentTarget.value,
+                    );
+
+                    if (!isUpdated) {
+                      event.currentTarget.value = tag.name;
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
+                />
+                <ColorPicker
+                  value={tag.color}
+                  onChange={(color) => handleChangeColor(tag.id, color)}
+                  label="タグ色"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTag(tag)}
+                  className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 lg:self-start"
+                >
+                  削除
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {activeTags.length === 0 ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              活動タグがありません。上のフォームから追加してください。
+            </p>
+          ) : null}
+        </section>
+      </div>
+    </main>
+  );
+}

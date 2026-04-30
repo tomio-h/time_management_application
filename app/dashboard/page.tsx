@@ -8,62 +8,28 @@ import {
   Tooltip,
   type TooltipContentProps,
 } from "recharts";
-
-type ActivityTag =
-  | "授業"
-  | "課題"
-  | "研究"
-  | "バイト"
-  | "睡眠"
-  | "スマホ"
-  | "趣味"
-  | "休憩";
-
-type ActivityRecord = {
-  id: number;
-  tag: ActivityTag;
-  start: string;
-  end: string;
-  minutes: number;
-};
-
-type TagOption = {
-  name: ActivityTag;
-  color: string;
-};
+import {
+  attachTagIdsToRecords,
+  getSortedActiveTags,
+  getTagForRecord,
+  initialActivityRecords,
+  initialActivityTags,
+  parseStoredRecords,
+  parseStoredTags,
+  RECORDS_STORAGE_KEY,
+  TAGS_STORAGE_KEY,
+  type ActivityRecord,
+  type ActivityTag,
+} from "../lib/time-wallet-storage";
 
 type RunningRecord = {
-  tag: ActivityTag;
+  tagId: string;
+  tagName: string;
   startedAt: Date;
   elapsedSeconds: number;
 };
 
 const DAY_MINUTES = 24 * 60;
-
-const tagOptions: TagOption[] = [
-  { name: "授業", color: "#2563eb" },
-  { name: "課題", color: "#0f766e" },
-  { name: "研究", color: "#7c3aed" },
-  { name: "バイト", color: "#c2410c" },
-  { name: "睡眠", color: "#4f46e5" },
-  { name: "スマホ", color: "#db2777" },
-  { name: "趣味", color: "#16a34a" },
-  { name: "休憩", color: "#ca8a04" },
-];
-
-const RECORDS_STORAGE_KEY = "time-wallet:dashboard-records";
-const activityTagNames = new Set<ActivityTag>(
-  tagOptions.map((tag) => tag.name),
-);
-
-const initialActivityRecords: ActivityRecord[] = [
-  { id: 1, start: "09:00", end: "10:30", tag: "授業", minutes: 90 },
-  { id: 2, start: "10:45", end: "12:00", tag: "課題", minutes: 75 },
-  { id: 3, start: "13:00", end: "15:00", tag: "研究", minutes: 120 },
-  { id: 4, start: "15:20", end: "17:20", tag: "バイト", minutes: 120 },
-  { id: 5, start: "18:00", end: "18:40", tag: "休憩", minutes: 40 },
-  { id: 6, start: "21:10", end: "22:05", tag: "趣味", minutes: 55 },
-];
 
 const todayLabel = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "full",
@@ -101,42 +67,6 @@ function formatRecordTime(date: Date) {
   return `${hours}:${minutes}`;
 }
 
-function isRecordObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isActivityTag(value: unknown): value is ActivityTag {
-  return typeof value === "string" && activityTagNames.has(value as ActivityTag);
-}
-
-function isActivityRecord(value: unknown): value is ActivityRecord {
-  return (
-    isRecordObject(value) &&
-    typeof value.id === "number" &&
-    Number.isFinite(value.id) &&
-    isActivityTag(value.tag) &&
-    typeof value.start === "string" &&
-    typeof value.end === "string" &&
-    typeof value.minutes === "number" &&
-    Number.isFinite(value.minutes) &&
-    value.minutes >= 0
-  );
-}
-
-function parseStoredRecords(value: string) {
-  try {
-    const parsed: unknown = JSON.parse(value);
-
-    if (Array.isArray(parsed) && parsed.every(isActivityRecord)) {
-      return parsed;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
 function ActivityTooltip({
   active,
   payload,
@@ -156,7 +86,8 @@ function ActivityTooltip({
 }
 
 export default function DashboardPage() {
-  const [selectedTag, setSelectedTag] = useState<ActivityTag>("研究");
+  const [selectedTagId, setSelectedTagId] = useState("research");
+  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
   const [records, setRecords] = useState<ActivityRecord[]>(
     initialActivityRecords,
   );
@@ -168,14 +99,31 @@ export default function DashboardPage() {
   const runningStartedAt = runningRecord?.startedAt.getTime();
 
   useEffect(() => {
+    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
     const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
+    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
     const parsedRecords = storedRecords
       ? parseStoredRecords(storedRecords)
       : null;
 
     const timeoutId = window.setTimeout(() => {
+      const loadedTags = parsedTags ?? initialActivityTags;
+
+      if (parsedTags) {
+        setTags(parsedTags);
+        setSelectedTagId((currentTagId) => {
+          const activeTags = getSortedActiveTags(loadedTags);
+
+          if (activeTags.some((tag) => tag.id === currentTagId)) {
+            return currentTagId;
+          }
+
+          return activeTags[0]?.id ?? currentTagId;
+        });
+      }
+
       if (parsedRecords) {
-        setRecords(parsedRecords);
+        setRecords(attachTagIdsToRecords(parsedRecords, loadedTags));
       }
 
       setIsStorageReady(true);
@@ -191,6 +139,14 @@ export default function DashboardPage() {
 
     window.localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
   }, [isStorageReady, records]);
+
+  useEffect(() => {
+    if (!isStorageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+  }, [isStorageReady, tags]);
 
   useEffect(() => {
     if (runningStartedAt === undefined) {
@@ -222,24 +178,45 @@ export default function DashboardPage() {
   );
   const unrecordedMinutes = Math.max(DAY_MINUTES - recordedMinutes, 0);
   const recordedRatio = Math.min(recordedMinutes / DAY_MINUTES, 1);
+  const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
+  const selectedTag =
+    activeTags.find((tag) => tag.id === selectedTagId) ?? activeTags[0] ?? null;
 
   const chartData = useMemo(
-    () =>
-      tagOptions
-        .map((tag) => ({
-          name: tag.name,
-          value: records
-            .filter((record) => record.tag === tag.name)
-            .reduce((total, record) => total + record.minutes, 0),
-          color: tag.color,
-        }))
-        .filter((entry) => entry.value > 0),
-    [records],
+    () => {
+      const groupedRecords = new Map<
+        string,
+        { id: string; name: string; value: number; color: string }
+      >();
+
+      records.forEach((record) => {
+        const tag = getTagForRecord(record, tags);
+        const id = tag?.id ?? `legacy-${record.tag}`;
+        const currentValue = groupedRecords.get(id)?.value ?? 0;
+
+        groupedRecords.set(id, {
+          id,
+          name: tag?.name ?? record.tag,
+          value: currentValue + record.minutes,
+          color: tag?.color ?? "#71717a",
+        });
+      });
+
+      return Array.from(groupedRecords.values()).filter(
+        (entry) => entry.value > 0,
+      );
+    },
+    [records, tags],
   );
 
   const handleStart = () => {
+    if (!selectedTag) {
+      return;
+    }
+
     setRunningRecord({
-      tag: selectedTag,
+      tagId: selectedTag.id,
+      tagName: selectedTag.name,
       startedAt: new Date(),
       elapsedSeconds: 0,
     });
@@ -261,7 +238,8 @@ export default function DashboardPage() {
       ...currentRecords,
       {
         id: stoppedAt.getTime(),
-        tag: runningRecord.tag,
+        tagId: runningRecord.tagId,
+        tag: runningRecord.tagName,
         start: formatRecordTime(runningRecord.startedAt),
         end: formatRecordTime(stoppedAt),
         minutes,
@@ -282,7 +260,7 @@ export default function DashboardPage() {
     }
   };
 
-  const currentTag = runningRecord?.tag ?? selectedTag;
+  const currentTag = runningRecord?.tagName ?? selectedTag?.name ?? "タグなし";
   const currentTimer = formatTimer(runningRecord?.elapsedSeconds ?? 0);
 
   return (
@@ -374,7 +352,8 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleStart}
-                className="mt-6 h-11 w-full rounded-md bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-300"
+                disabled={!selectedTag}
+                className="mt-6 h-11 w-full rounded-md bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
                 開始する
               </button>
@@ -391,20 +370,20 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold text-zinc-950">活動タグ</h2>
             </div>
             <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-700">
-              選択中: {selectedTag}
+              選択中: {selectedTag?.name ?? "タグなし"}
             </p>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            {tagOptions.map((tag) => {
-              const isSelected = selectedTag === tag.name;
+            {activeTags.map((tag) => {
+              const isSelected = selectedTag?.id === tag.id;
 
               return (
                 <button
-                  key={tag.name}
+                  key={tag.id}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => setSelectedTag(tag.name)}
+                  onClick={() => setSelectedTagId(tag.id)}
                   className={`flex h-12 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors ${
                     isSelected
                       ? "border-zinc-950 bg-zinc-950 text-white"
@@ -420,6 +399,11 @@ export default function DashboardPage() {
               );
             })}
           </div>
+          {activeTags.length === 0 ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              活動タグがありません。/tags でタグを追加してください。
+            </p>
+          ) : null}
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -445,7 +429,7 @@ export default function DashboardPage() {
                   strokeWidth={0}
                 >
                   {chartData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
+                    <Cell key={entry.id} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip content={ActivityTooltip} />
@@ -455,7 +439,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {chartData.map((entry) => (
                 <div
-                  key={entry.name}
+                  key={entry.id}
                   className="flex items-center justify-between gap-2 rounded-md bg-zinc-50 px-3 py-2 text-sm"
                 >
                   <span className="flex items-center gap-2 font-medium text-zinc-700">
@@ -492,7 +476,7 @@ export default function DashboardPage() {
 
             <div className="mt-4 flex flex-col gap-3">
               {records.map((record) => {
-                const tag = tagOptions.find((item) => item.name === record.tag);
+                const tag = getTagForRecord(record, tags);
 
                 return (
                   <div
@@ -501,11 +485,11 @@ export default function DashboardPage() {
                   >
                     <span
                       className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: tag?.color }}
+                      style={{ backgroundColor: tag?.color ?? "#71717a" }}
                     />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-zinc-950">
-                        {record.start}-{record.end} {record.tag}
+                        {record.start}-{record.end} {tag?.name ?? record.tag}
                       </p>
                       <p className="text-xs text-zinc-500">時間記録</p>
                     </div>
