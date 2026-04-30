@@ -51,6 +51,11 @@ const tagOptions: TagOption[] = [
   { name: "休憩", color: "#ca8a04" },
 ];
 
+const RECORDS_STORAGE_KEY = "time-wallet:dashboard-records";
+const activityTagNames = new Set<ActivityTag>(
+  tagOptions.map((tag) => tag.name),
+);
+
 const initialActivityRecords: ActivityRecord[] = [
   { id: 1, start: "09:00", end: "10:30", tag: "授業", minutes: 90 },
   { id: 2, start: "10:45", end: "12:00", tag: "課題", minutes: 75 },
@@ -96,6 +101,42 @@ function formatRecordTime(date: Date) {
   return `${hours}:${minutes}`;
 }
 
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isActivityTag(value: unknown): value is ActivityTag {
+  return typeof value === "string" && activityTagNames.has(value as ActivityTag);
+}
+
+function isActivityRecord(value: unknown): value is ActivityRecord {
+  return (
+    isRecordObject(value) &&
+    typeof value.id === "number" &&
+    Number.isFinite(value.id) &&
+    isActivityTag(value.tag) &&
+    typeof value.start === "string" &&
+    typeof value.end === "string" &&
+    typeof value.minutes === "number" &&
+    Number.isFinite(value.minutes) &&
+    value.minutes >= 0
+  );
+}
+
+function parseStoredRecords(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (Array.isArray(parsed) && parsed.every(isActivityRecord)) {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function ActivityTooltip({
   active,
   payload,
@@ -119,11 +160,37 @@ export default function DashboardPage() {
   const [records, setRecords] = useState<ActivityRecord[]>(
     initialActivityRecords,
   );
+  const [isStorageReady, setIsStorageReady] = useState(false);
   const [runningRecord, setRunningRecord] = useState<RunningRecord | null>(
     null,
   );
 
   const runningStartedAt = runningRecord?.startedAt.getTime();
+
+  useEffect(() => {
+    const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
+    const parsedRecords = storedRecords
+      ? parseStoredRecords(storedRecords)
+      : null;
+
+    const timeoutId = window.setTimeout(() => {
+      if (parsedRecords) {
+        setRecords(parsedRecords);
+      }
+
+      setIsStorageReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageReady) {
+      return;
+    }
+
+    window.localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+  }, [isStorageReady, records]);
 
   useEffect(() => {
     if (runningStartedAt === undefined) {
@@ -201,6 +268,18 @@ export default function DashboardPage() {
       },
     ]);
     setRunningRecord(null);
+  };
+
+  const handleResetRecords = () => {
+    setRecords(initialActivityRecords);
+    setRunningRecord(null);
+
+    if (isStorageReady) {
+      window.localStorage.setItem(
+        RECORDS_STORAGE_KEY,
+        JSON.stringify(initialActivityRecords),
+      );
+    }
   };
 
   const currentTag = runningRecord?.tag ?? selectedTag;
@@ -395,11 +474,20 @@ export default function DashboardPage() {
           </article>
 
           <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
-            <div>
-              <p className="text-sm font-medium text-zinc-500">今日の履歴</p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
-                今日の活動履歴リスト
-              </h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-500">今日の履歴</p>
+                <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+                  今日の活動履歴リスト
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetRecords}
+                className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                データをリセット
+              </button>
             </div>
 
             <div className="mt-4 flex flex-col gap-3">
