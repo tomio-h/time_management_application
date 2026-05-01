@@ -407,6 +407,9 @@ export default function TagsPage() {
                 <h2 className="mt-1 text-xl font-semibold text-zinc-950">
                   この端末のデータを取り込む
                 </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+                  未ログイン中にこの端末へ保存したタグ・記録を、現在のアカウントへ取り込みます。localStorageのデータは削除しません。
+                </p>
               </div>
               <button
                 type="button"

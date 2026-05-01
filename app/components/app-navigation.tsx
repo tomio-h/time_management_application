@@ -142,32 +142,44 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
       <span
         className={
           isMobile
-            ? "mb-2 flex min-h-12 items-center justify-center rounded-lg bg-zinc-50 px-3 text-sm font-semibold text-zinc-500"
-            : "flex min-h-10 items-center rounded-md px-3.5 text-[0.95rem] font-semibold text-zinc-500"
+            ? "mb-2 flex min-h-14 items-center justify-center rounded-lg bg-zinc-50 px-3 text-sm font-semibold text-zinc-500"
+            : "flex min-h-12 items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3.5 text-[0.95rem] font-semibold text-zinc-500"
         }
       >
-        確認中
+        保存先を確認中
       </span>
     );
   }
 
   if (!email) {
     return (
-      <Link
-        href="/login"
-        aria-current={isLoginActive ? "page" : undefined}
+      <div
         className={
           isMobile
-            ? `mb-2 flex min-h-12 items-center justify-center rounded-lg px-3 text-sm font-semibold transition-colors ${
-                isLoginActive
-                  ? "bg-zinc-950 text-white"
-                  : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-              }`
-            : getLinkClassName(isLoginActive)
+            ? "mb-2 flex min-h-16 items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+            : "flex min-w-[19rem] max-w-full items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
         }
       >
-        ログイン
-      </Link>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-amber-950">
+            この端末に保存中
+          </span>
+          <span className="block truncate text-xs font-medium text-amber-700">
+            ログインするとクラウド保存できます
+          </span>
+        </span>
+        <Link
+          href="/login"
+          aria-current={isLoginActive ? "page" : undefined}
+          className={`flex min-h-10 shrink-0 items-center justify-center rounded-md px-3 text-sm font-semibold transition-colors ${
+            isLoginActive
+              ? "bg-zinc-950 text-white"
+              : "bg-white text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100"
+          }`}
+        >
+          ログイン
+        </Link>
+      </div>
     );
   }
 
@@ -175,18 +187,17 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
     <div
       className={
         isMobile
-          ? "mb-2 flex min-h-12 items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2"
-          : "flex min-w-[15rem] items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1.5"
+          ? "mb-2 flex min-h-16 items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
+          : "flex min-w-[20rem] max-w-full items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
       }
     >
-      <span
-        className={
-          isMobile
-            ? "min-w-0 flex-1 truncate text-sm font-semibold text-zinc-600"
-            : "min-w-0 flex-1 truncate text-sm font-semibold text-zinc-600"
-        }
-      >
-        {email}
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-emerald-950">
+          クラウドに保存中
+        </span>
+        <span className="block truncate text-xs font-medium text-emerald-700">
+          {email}
+        </span>
       </span>
       <button
         type="button"
@@ -194,8 +205,8 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
         disabled={isSigningOut}
         className={
           isMobile
-            ? "min-h-10 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
-            : "min-h-9 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+            ? "min-h-10 shrink-0 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+            : "min-h-10 shrink-0 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
         }
       >
         ログアウト
