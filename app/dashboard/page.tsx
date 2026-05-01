@@ -8,6 +8,11 @@ import {
   Tooltip,
   type TooltipContentProps,
 } from "recharts";
+import {
+  deleteSupabaseActiveTimer,
+  fetchSupabaseActiveTimer,
+  upsertSupabaseActiveTimer,
+} from "../lib/supabase/active-timers";
 import { addSupabaseTimeRecord } from "../lib/supabase/time-records";
 import {
   getSortedActiveTags,
@@ -21,7 +26,8 @@ import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
 type RunningRecord = {
-  tagId: string;
+  tagId: string | null;
+  tagNameSnapshot: string;
   startedAt: Date;
   elapsedSeconds: number;
 };
@@ -76,6 +82,23 @@ function formatRecordTime(date: Date) {
   return `${hours}:${minutes}`;
 }
 
+function isValidDate(date: Date) {
+  return Number.isFinite(date.getTime());
+}
+
+function createRunningRecord(
+  tagId: string | null,
+  tagNameSnapshot: string,
+  startedAt: Date,
+): RunningRecord {
+  return {
+    tagId,
+    tagNameSnapshot,
+    startedAt,
+    elapsedSeconds: getElapsedSeconds(startedAt),
+  };
+}
+
 function ActivityTooltip({
   active,
   payload,
@@ -115,30 +138,106 @@ export default function DashboardPage() {
     null,
   );
   const [isSavingRecord, setIsSavingRecord] = useState(false);
+  const [isActiveTimerReady, setIsActiveTimerReady] = useState(false);
+  const [activeTimerErrorMessage, setActiveTimerErrorMessage] = useState("");
   const [message, setMessage] = useState("");
 
   const runningStartedAt = runningRecord?.startedAt.getTime();
-  const isDataReady = isTagsReady && isRecordsReady;
+  const isDataReady = isTagsReady && isRecordsReady && isActiveTimerReady;
   const isUsingSupabase = recordsSource === "supabase" && userId !== null;
-  const statusMessage = message || tagLoadErrorMessage || recordLoadErrorMessage;
+  const statusMessage =
+    message ||
+    tagLoadErrorMessage ||
+    recordLoadErrorMessage ||
+    activeTimerErrorMessage;
 
   useEffect(() => {
-    const storedActiveTimer = loadActiveTimerFromStorage();
+    if (!isTagsReady || !isRecordsReady) {
+      return;
+    }
+
+    let isMounted = true;
 
     const timeoutId = window.setTimeout(() => {
-      if (storedActiveTimer) {
-        const startedAt = new Date(storedActiveTimer.startedAt);
+      setIsActiveTimerReady(false);
+      setActiveTimerErrorMessage("");
 
-        setRunningRecord({
-          tagId: storedActiveTimer.tagId,
-          startedAt,
-          elapsedSeconds: getElapsedSeconds(startedAt),
-        });
-      }
+      const restoreActiveTimer = async () => {
+        await Promise.resolve();
+
+        if (isUsingSupabase && userId) {
+          try {
+            const activeTimer = await fetchSupabaseActiveTimer(userId);
+
+            if (!isMounted) {
+              return;
+            }
+
+            if (activeTimer && isValidDate(activeTimer.startedAt)) {
+              setRunningRecord(
+                createRunningRecord(
+                  activeTimer.tagId,
+                  activeTimer.tagNameSnapshot,
+                  activeTimer.startedAt,
+                ),
+              );
+            } else {
+              setRunningRecord(null);
+            }
+
+            setActiveTimerErrorMessage("");
+          } catch (error) {
+            if (!isMounted) {
+              return;
+            }
+
+            setRunningRecord(null);
+            setActiveTimerErrorMessage(
+              error instanceof Error
+                ? error.message
+                : "記録中タイマーを読み込めませんでした。",
+            );
+          } finally {
+            if (isMounted) {
+              setIsActiveTimerReady(true);
+            }
+          }
+
+          return;
+        }
+
+        const storedActiveTimer = loadActiveTimerFromStorage();
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (storedActiveTimer) {
+          const startedAt = new Date(storedActiveTimer.startedAt);
+
+          setRunningRecord(
+            createRunningRecord(
+              storedActiveTimer.tagId,
+              "削除済みタグ",
+              startedAt,
+            ),
+          );
+        } else {
+          setRunningRecord(null);
+        }
+
+        setActiveTimerErrorMessage("");
+        setIsActiveTimerReady(true);
+      };
+
+      void restoreActiveTimer();
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isRecordsReady, isTagsReady, isUsingSupabase, userId]);
 
   useEffect(() => {
     if (runningStartedAt === undefined) {
@@ -209,22 +308,54 @@ export default function DashboardPage() {
     [todayRecords, tags],
   );
 
-  const handleStart = () => {
-    if (!selectedTag) {
+  const handleStart = async () => {
+    if (!selectedTag || !isDataReady) {
       return;
     }
 
     const startedAt = new Date();
 
-    setRunningRecord({
-      tagId: selectedTag.id,
-      startedAt,
-      elapsedSeconds: 0,
-    });
+    if (isUsingSupabase) {
+      setIsSavingRecord(true);
+
+      try {
+        const activeTimer = await upsertSupabaseActiveTimer({
+          userId,
+          tagId: selectedTag.id,
+          tagNameSnapshot: selectedTag.name,
+          startedAt,
+        });
+
+        setRunningRecord(
+          createRunningRecord(
+            activeTimer.tagId,
+            activeTimer.tagNameSnapshot,
+            activeTimer.startedAt,
+          ),
+        );
+        removeActiveTimerFromStorage();
+        setMessage("");
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "記録中タイマーを保存できませんでした。",
+        );
+      } finally {
+        setIsSavingRecord(false);
+      }
+
+      return;
+    }
+
+    setRunningRecord(
+      createRunningRecord(selectedTag.id, selectedTag.name, startedAt),
+    );
     saveActiveTimerToStorage({
       tagId: selectedTag.id,
       startedAt: startedAt.toISOString(),
     });
+    setMessage("");
   };
 
   const handleStop = async () => {
@@ -243,8 +374,11 @@ export default function DashboardPage() {
       Math.floor((stoppedAt.getTime() - runningRecord.startedAt.getTime()) / 1000),
     );
     const minutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
-    const recordTag = tags.find((tag) => tag.id === runningRecord.tagId);
-    const tagNameSnapshot = recordTag?.name ?? "削除済みタグ";
+    const recordTag =
+      runningRecord.tagId === null
+        ? null
+        : tags.find((tag) => tag.id === runningRecord.tagId) ?? null;
+    const tagNameSnapshot = recordTag?.name ?? runningRecord.tagNameSnapshot;
 
     if (isUsingSupabase) {
       setIsSavingRecord(true);
@@ -252,12 +386,13 @@ export default function DashboardPage() {
       try {
         const addedRecord = await addSupabaseTimeRecord({
           userId,
-          tagId: recordTag?.id ?? null,
+          tagId: runningRecord.tagId,
           tagNameSnapshot,
           startedAt: runningRecord.startedAt,
           endedAt: stoppedAt,
           durationMinutes: minutes,
         });
+        await deleteSupabaseActiveTimer(userId);
 
         setRecords((currentRecords) => [...currentRecords, addedRecord]);
         setRunningRecord(null);
@@ -281,7 +416,7 @@ export default function DashboardPage() {
       {
         id: stoppedAt.getTime(),
         date: todayValue,
-        tagId: runningRecord.tagId,
+        tagId: runningRecord.tagId ?? undefined,
         tag: tagNameSnapshot,
         start: formatRecordTime(runningRecord.startedAt),
         end: formatRecordTime(stoppedAt),
@@ -299,8 +434,6 @@ export default function DashboardPage() {
     }
 
     if (isUsingSupabase) {
-      setRunningRecord(null);
-      removeActiveTimerFromStorage();
       setMessage("ログイン中の記録は記録一覧から編集・削除してください。");
       return;
     }
@@ -312,10 +445,12 @@ export default function DashboardPage() {
   };
 
   const runningTag = runningRecord
-    ? tags.find((tag) => tag.id === runningRecord.tagId)
+    ? tags.find(
+        (tag) => runningRecord.tagId !== null && tag.id === runningRecord.tagId,
+      )
     : null;
   const currentTag = runningRecord
-    ? runningTag?.name ?? "削除済みタグ"
+    ? runningTag?.name ?? runningRecord.tagNameSnapshot
     : selectedTag?.name ?? "タグなし";
   const currentTimer = formatTimer(runningRecord?.elapsedSeconds ?? 0);
 
@@ -408,11 +543,11 @@ export default function DashboardPage() {
             ) : (
               <button
                 type="button"
-                onClick={handleStart}
-                disabled={!selectedTag || !isDataReady}
+                onClick={() => void handleStart()}
+                disabled={!selectedTag || !isDataReady || isSavingRecord}
                 className="mt-6 h-14 w-full rounded-md bg-emerald-400 px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
-                開始する
+                {isSavingRecord ? "保存中" : "開始する"}
               </button>
             )}
           </article>
@@ -431,7 +566,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {!isTagsReady || !isRecordsReady ? (
+          {!isTagsReady || !isRecordsReady || !isActiveTimerReady ? (
             <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               データを読み込み中です。
             </p>

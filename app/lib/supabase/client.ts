@@ -81,6 +81,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      active_timers: {
+        Row: {
+          user_id: string;
+          tag_id: string | null;
+          tag_name_snapshot: string | null;
+          started_at: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          tag_id?: string | null;
+          tag_name_snapshot?: string | null;
+          started_at: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          tag_id?: string | null;
+          tag_name_snapshot?: string | null;
+          started_at?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;
