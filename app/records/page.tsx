@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   attachTagIdsToRecords,
+  getSortedActiveTags,
   getTagForRecord,
   initialActivityTags,
   parseStoredRecords,
@@ -13,6 +14,15 @@ import {
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+
+type EditDraft = {
+  date: string;
+  tagId: string;
+  start: string;
+  end: string;
+  memo: string;
+  errorMessage: string;
+};
 
 function getTodayValue() {
   const today = new Date();
@@ -38,6 +48,21 @@ function formatMinutes(minutes: number) {
   return `${hours}h${restMinutes}m`;
 }
 
+function timeToMinutes(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+
+  if (
+    hours === undefined ||
+    minutes === undefined ||
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes)
+  ) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
 function getRecordDate(record: ActivityRecord) {
   return record.date ?? getTodayValue();
 }
@@ -46,9 +71,49 @@ function getSortValue(record: ActivityRecord) {
   return `${getRecordDate(record)}T${record.end || record.start}`;
 }
 
+function getDurationMinutes(start: string, end: string) {
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+
+  if (startMinutes === null || endMinutes === null) {
+    return null;
+  }
+
+  const durationMinutes = endMinutes - startMinutes;
+
+  return durationMinutes > 0 ? durationMinutes : null;
+}
+
+function getSelectableTags(tags: ActivityTag[], record: ActivityRecord) {
+  const activeTags = getSortedActiveTags(tags);
+  const recordTag = getTagForRecord(record, tags);
+
+  if (recordTag && !activeTags.some((tag) => tag.id === recordTag.id)) {
+    return [recordTag, ...activeTags];
+  }
+
+  return activeTags;
+}
+
+function createEditDraft(record: ActivityRecord, tags: ActivityTag[]): EditDraft {
+  const selectableTags = getSelectableTags(tags, record);
+  const recordTag = getTagForRecord(record, tags);
+
+  return {
+    date: getRecordDate(record),
+    tagId: recordTag?.id ?? selectableTags[0]?.id ?? "",
+    start: record.start,
+    end: record.end,
+    memo: record.memo ?? "",
+    errorMessage: "",
+  };
+}
+
 export default function RecordsPage() {
   const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
   const [records, setRecords] = useState<ActivityRecord[]>([]);
+  const [editingRecordId, setEditingRecordId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
 
   useEffect(() => {
     const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
@@ -108,6 +173,94 @@ export default function RecordsPage() {
 
       return nextRecords;
     });
+
+    if (editingRecordId === recordToDelete.id) {
+      setEditingRecordId(null);
+      setEditDraft(null);
+    }
+  };
+
+  const handleStartEdit = (record: ActivityRecord) => {
+    setEditingRecordId(record.id);
+    setEditDraft(createEditDraft(record, tags));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRecordId(null);
+    setEditDraft(null);
+  };
+
+  const updateEditDraft = (
+    field: keyof Omit<EditDraft, "errorMessage">,
+    value: string,
+  ) => {
+    setEditDraft((currentDraft) =>
+      currentDraft
+        ? { ...currentDraft, [field]: value, errorMessage: "" }
+        : currentDraft,
+    );
+  };
+
+  const handleSaveEdit = (recordToUpdate: ActivityRecord) => {
+    if (!editDraft) {
+      return;
+    }
+
+    const durationMinutes = getDurationMinutes(editDraft.start, editDraft.end);
+
+    if (durationMinutes === null) {
+      setEditDraft((currentDraft) =>
+        currentDraft
+          ? {
+              ...currentDraft,
+              errorMessage: "終了時刻は開始時刻より後にしてください。",
+            }
+          : currentDraft,
+      );
+      return;
+    }
+
+    const selectableTags = getSelectableTags(tags, recordToUpdate);
+    const selectedTag =
+      selectableTags.find((tag) => tag.id === editDraft.tagId) ??
+      selectableTags[0];
+
+    if (!selectedTag) {
+      setEditDraft((currentDraft) =>
+        currentDraft
+          ? { ...currentDraft, errorMessage: "活動タグを選択してください。" }
+          : currentDraft,
+      );
+      return;
+    }
+
+    setRecords((currentRecords) => {
+      const nextRecords = currentRecords.map((record) =>
+        record.id === recordToUpdate.id
+          ? {
+              ...record,
+              date: editDraft.date,
+              tagId: selectedTag.id,
+              tag: selectedTag.name,
+              start: editDraft.start,
+              end: editDraft.end,
+              minutes: durationMinutes,
+              durationMinutes,
+              memo: editDraft.memo.trim() || undefined,
+            }
+          : record,
+      );
+
+      window.localStorage.setItem(
+        RECORDS_STORAGE_KEY,
+        JSON.stringify(nextRecords),
+      );
+
+      return nextRecords;
+    });
+
+    setEditingRecordId(null);
+    setEditDraft(null);
   };
 
   return (
@@ -156,6 +309,13 @@ export default function RecordsPage() {
                 const tag = getTagForRecord(record, tags);
                 const tagName = tag?.name ?? record.tag;
                 const tagColor = tag?.color ?? "#71717a";
+                const isEditing =
+                  editingRecordId === record.id && editDraft !== null;
+                const selectableTags = getSelectableTags(tags, record);
+                const draftDuration =
+                  isEditing && editDraft
+                    ? getDurationMinutes(editDraft.start, editDraft.end)
+                    : null;
 
                 return (
                   <article
@@ -185,6 +345,13 @@ export default function RecordsPage() {
                         </p>
                         <button
                           type="button"
+                          onClick={() => handleStartEdit(record)}
+                          className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
+                        >
+                          編集
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDeleteRecord(record)}
                           className="h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
                         >
@@ -193,32 +360,149 @@ export default function RecordsPage() {
                       </div>
                     </div>
 
-                    <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                      <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
-                        <dt className="text-xs font-medium text-zinc-500">
-                          開始時刻
-                        </dt>
-                        <dd className="mt-1 font-semibold text-zinc-950">
-                          {record.start}
-                        </dd>
+                    {isEditing && editDraft ? (
+                      <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label className="flex flex-col gap-2">
+                            <span className="text-sm font-semibold text-zinc-700">
+                              日付
+                            </span>
+                            <input
+                              type="date"
+                              value={editDraft.date}
+                              onChange={(event) =>
+                                updateEditDraft("date", event.target.value)
+                              }
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                            />
+                          </label>
+
+                          <label className="flex flex-col gap-2">
+                            <span className="text-sm font-semibold text-zinc-700">
+                              活動タグ
+                            </span>
+                            <select
+                              value={editDraft.tagId}
+                              onChange={(event) =>
+                                updateEditDraft("tagId", event.target.value)
+                              }
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                            >
+                              {selectableTags.map((selectableTag) => (
+                                <option
+                                  key={selectableTag.id}
+                                  value={selectableTag.id}
+                                >
+                                  {selectableTag.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label className="flex flex-col gap-2">
+                            <span className="text-sm font-semibold text-zinc-700">
+                              開始時刻
+                            </span>
+                            <input
+                              type="time"
+                              value={editDraft.start}
+                              onChange={(event) =>
+                                updateEditDraft("start", event.target.value)
+                              }
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                            />
+                          </label>
+
+                          <label className="flex flex-col gap-2">
+                            <span className="text-sm font-semibold text-zinc-700">
+                              終了時刻
+                            </span>
+                            <input
+                              type="time"
+                              value={editDraft.end}
+                              onChange={(event) =>
+                                updateEditDraft("end", event.target.value)
+                              }
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700">
+                          記録時間:{" "}
+                          {draftDuration === null
+                            ? "-"
+                            : formatMinutes(draftDuration)}
+                        </div>
+
+                        <label className="mt-3 flex flex-col gap-2">
+                          <span className="text-sm font-semibold text-zinc-700">
+                            メモ
+                          </span>
+                          <textarea
+                            value={editDraft.memo}
+                            onChange={(event) =>
+                              updateEditDraft("memo", event.target.value)
+                            }
+                            rows={3}
+                            className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+                            placeholder="必要に応じてメモを残す"
+                          />
+                        </label>
+
+                        {editDraft.errorMessage ? (
+                          <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                            {editDraft.errorMessage}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(record)}
+                            className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800"
+                          >
+                            保存する
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="h-10 rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
                       </div>
-                      <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
-                        <dt className="text-xs font-medium text-zinc-500">
-                          終了時刻
-                        </dt>
-                        <dd className="mt-1 font-semibold text-zinc-950">
-                          {record.end}
-                        </dd>
-                      </div>
-                      <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200 sm:col-span-2">
-                        <dt className="text-xs font-medium text-zinc-500">
-                          メモ
-                        </dt>
-                        <dd className="mt-1 min-h-5 break-words font-medium text-zinc-700">
-                          {record.memo || "-"}
-                        </dd>
-                      </div>
-                    </dl>
+                    ) : (
+                      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                        <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
+                          <dt className="text-xs font-medium text-zinc-500">
+                            開始時刻
+                          </dt>
+                          <dd className="mt-1 font-semibold text-zinc-950">
+                            {record.start}
+                          </dd>
+                        </div>
+                        <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
+                          <dt className="text-xs font-medium text-zinc-500">
+                            終了時刻
+                          </dt>
+                          <dd className="mt-1 font-semibold text-zinc-950">
+                            {record.end}
+                          </dd>
+                        </div>
+                        <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200 sm:col-span-2">
+                          <dt className="text-xs font-medium text-zinc-500">
+                            メモ
+                          </dt>
+                          <dd className="mt-1 min-h-5 break-words font-medium text-zinc-700">
+                            {record.memo || "-"}
+                          </dd>
+                        </div>
+                      </dl>
+                    )}
                   </article>
                 );
               })}
