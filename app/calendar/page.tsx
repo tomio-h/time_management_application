@@ -227,6 +227,12 @@ export default function CalendarPage() {
             >
               ダッシュボードへ
             </Link>
+            <Link
+              href="/analytics"
+              className="rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
+            >
+              分析
+            </Link>
           </div>
         </header>
 

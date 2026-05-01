@@ -441,6 +441,12 @@ export default function DashboardPage() {
             >
               カレンダー
             </Link>
+            <Link
+              href="/analytics"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              分析
+            </Link>
           </div>
         </section>
 
