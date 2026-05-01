@@ -153,12 +153,20 @@ export default function NewRecordPage() {
               手動記録追加
             </h1>
           </div>
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
-          >
-            ダッシュボードへ
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/records"
+              className="rounded-md bg-zinc-950 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800"
+            >
+              記録一覧
+            </Link>
+            <Link
+              href="/dashboard"
+              className="rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
+            >
+              ダッシュボードへ
+            </Link>
+          </div>
         </header>
 
         <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">

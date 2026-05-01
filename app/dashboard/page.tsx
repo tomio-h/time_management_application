@@ -422,12 +422,20 @@ export default function DashboardPage() {
               活動タグがありません。/tags でタグを追加してください。
             </p>
           ) : null}
-          <Link
-            href="/records/new"
-            className="mt-4 inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
-          >
-            手動で追加
-          </Link>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/records/new"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              手動で追加
+            </Link>
+            <Link
+              href="/records"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              記録一覧
+            </Link>
+          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
