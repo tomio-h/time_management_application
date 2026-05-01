@@ -87,6 +87,29 @@ export default function RecordsPage() {
     [records],
   );
 
+  const handleDeleteRecord = (recordToDelete: ActivityRecord) => {
+    if (
+      !window.confirm(
+        `${getRecordDate(recordToDelete)} ${recordToDelete.start}-${recordToDelete.end} の記録を削除しますか？`,
+      )
+    ) {
+      return;
+    }
+
+    setRecords((currentRecords) => {
+      const nextRecords = currentRecords.filter(
+        (record) => record.id !== recordToDelete.id,
+      );
+
+      window.localStorage.setItem(
+        RECORDS_STORAGE_KEY,
+        JSON.stringify(nextRecords),
+      );
+
+      return nextRecords;
+    });
+  };
+
   return (
     <main className="min-h-screen bg-zinc-100 text-zinc-950">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -139,7 +162,7 @@ export default function RecordsPage() {
                     key={record.id}
                     className="rounded-md border border-zinc-200 bg-zinc-50 p-4"
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-zinc-950">
                           {getRecordDate(record)}
@@ -154,9 +177,20 @@ export default function RecordsPage() {
                           </span>
                         </div>
                       </div>
-                      <p className="shrink-0 rounded-md bg-white px-3 py-1 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
-                        {formatMinutes(record.durationMinutes ?? record.minutes)}
-                      </p>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <p className="rounded-md bg-white px-3 py-1 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
+                          {formatMinutes(
+                            record.durationMinutes ?? record.minutes,
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRecord(record)}
+                          className="h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+                        >
+                          削除
+                        </button>
+                      </div>
                     </div>
 
                     <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
