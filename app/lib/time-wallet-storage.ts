@@ -18,9 +18,15 @@ export type ActivityRecord = {
   memo?: string;
 };
 
+export type ActiveTimer = {
+  tagId: string;
+  startedAt: string;
+};
+
 export const MAX_ACTIVITY_TAGS = 20;
 export const TAGS_STORAGE_KEY = "time-wallet:activity-tags";
 export const RECORDS_STORAGE_KEY = "time-wallet:dashboard-records";
+export const ACTIVE_TIMER_STORAGE_KEY = "time-wallet:active-timer";
 
 export const initialActivityTags: ActivityTag[] = [
   { id: "class", name: "授業", color: "#2563eb", sortOrder: 1, isActive: true },
@@ -145,6 +151,16 @@ function isStoredActivityRecord(value: unknown): value is ActivityRecord {
   );
 }
 
+function isStoredActiveTimer(value: unknown): value is ActiveTimer {
+  return (
+    isRecordObject(value) &&
+    typeof value.tagId === "string" &&
+    value.tagId.length > 0 &&
+    typeof value.startedAt === "string" &&
+    Number.isFinite(Date.parse(value.startedAt))
+  );
+}
+
 export function parseStoredTags(value: string) {
   try {
     const parsed: unknown = JSON.parse(value);
@@ -164,6 +180,20 @@ export function parseStoredRecords(value: string) {
     const parsed: unknown = JSON.parse(value);
 
     if (Array.isArray(parsed) && parsed.every(isStoredActivityRecord)) {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+export function parseStoredActiveTimer(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (isStoredActiveTimer(parsed)) {
       return parsed;
     }
   } catch {

@@ -91,6 +91,9 @@ export default function TagsPage() {
   const [isStorageReady, setIsStorageReady] = useState(false);
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editingTagName, setEditingTagName] = useState("");
+  const [editingTagColor, setEditingTagColor] = useState(DEFAULT_TAG_COLOR);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -152,15 +155,29 @@ export default function TagsPage() {
     ]);
     setNewTagName("");
     setNewTagColor(DEFAULT_TAG_COLOR);
+    setEditingTagId(null);
     setMessage("活動タグを追加しました。");
   };
 
-  const handleRenameTag = (tagId: string, nextName: string) => {
-    const trimmedName = nextName.trim();
+  const handleStartEdit = (tag: ActivityTag) => {
+    setEditingTagId(tag.id);
+    setEditingTagName(tag.name);
+    setEditingTagColor(tag.color);
+    setMessage("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTagId(null);
+    setEditingTagName("");
+    setEditingTagColor(DEFAULT_TAG_COLOR);
+  };
+
+  const handleSaveEdit = (tagId: string) => {
+    const trimmedName = editingTagName.trim();
 
     if (!trimmedName) {
       setMessage("タグ名を入力してください。");
-      return false;
+      return;
     }
 
     if (
@@ -171,23 +188,20 @@ export default function TagsPage() {
       )
     ) {
       setMessage("同じ名前の活動タグがあります。");
-      return false;
+      return;
     }
 
     setTags((currentTags) =>
       currentTags.map((tag) =>
-        tag.id === tagId ? { ...tag, name: trimmedName } : tag,
+        tag.id === tagId
+          ? { ...tag, color: editingTagColor, name: trimmedName }
+          : tag,
       ),
     );
-    setMessage("活動タグ名を更新しました。");
-    return true;
-  };
-
-  const handleChangeColor = (tagId: string, color: string) => {
-    setTags((currentTags) =>
-      currentTags.map((tag) => (tag.id === tagId ? { ...tag, color } : tag)),
-    );
-    setMessage("活動タグの色を更新しました。");
+    setEditingTagId(null);
+    setEditingTagName("");
+    setEditingTagColor(DEFAULT_TAG_COLOR);
+    setMessage("活動タグを更新しました。");
   };
 
   const handleDeleteTag = (tagToDelete: ActivityTag) => {
@@ -200,6 +214,9 @@ export default function TagsPage() {
         tag.id === tagToDelete.id ? { ...tag, isActive: false } : tag,
       ),
     );
+    if (editingTagId === tagToDelete.id) {
+      handleCancelEdit();
+    }
     setMessage("活動タグを削除しました。");
   };
 
@@ -266,46 +283,86 @@ export default function TagsPage() {
           </div>
 
           <div className="mt-4 flex flex-col gap-3">
-            {activeTags.map((tag) => (
-              <div
-                key={tag.id}
-                className="grid gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 lg:grid-cols-[1fr_1.4fr_auto] lg:items-start"
-              >
-                <input
-                  key={`${tag.id}-${tag.name}`}
-                  type="text"
-                  defaultValue={tag.name}
-                  onBlur={(event) => {
-                    const isUpdated = handleRenameTag(
-                      tag.id,
-                      event.currentTarget.value,
-                    );
+            {activeTags.map((tag) => {
+              const isEditing = editingTagId === tag.id;
 
-                    if (!isUpdated) {
-                      event.currentTarget.value = tag.name;
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.currentTarget.blur();
-                    }
-                  }}
-                  className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
-                />
-                <ColorPicker
-                  value={tag.color}
-                  onChange={(color) => handleChangeColor(tag.id, color)}
-                  label="タグ色"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteTag(tag)}
-                  className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 lg:self-start"
+              return (
+                <article
+                  key={tag.id}
+                  className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
                 >
-                  削除
-                </button>
-              </div>
-            ))}
+                  {isEditing ? (
+                    <div className="flex flex-col gap-3">
+                      <label className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-700">
+                          タグ名
+                        </span>
+                        <input
+                          type="text"
+                          value={editingTagName}
+                          onChange={(event) =>
+                            setEditingTagName(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              handleSaveEdit(tag.id);
+                            }
+                          }}
+                          className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
+                        />
+                      </label>
+
+                      <ColorPicker
+                        value={editingTagColor}
+                        onChange={setEditingTagColor}
+                        label="タグ色"
+                      />
+
+                      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveEdit(tag.id)}
+                          className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 sm:min-w-28"
+                        >
+                          保存
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:min-w-28"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="h-4 w-4 shrink-0 rounded-full"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <p className="min-w-0 flex-1 truncate text-base font-semibold text-zinc-950">
+                        {tag.name}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(tag)}
+                        className="h-11 shrink-0 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTag(tag)}
+                        className="h-11 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
 
           {activeTags.length === 0 ? (

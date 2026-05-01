@@ -9,11 +9,13 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import {
+  ACTIVE_TIMER_STORAGE_KEY,
   attachTagIdsToRecords,
   getSortedActiveTags,
   getTagForRecord,
   initialActivityRecords,
   initialActivityTags,
+  parseStoredActiveTimer,
   parseStoredRecords,
   parseStoredTags,
   RECORDS_STORAGE_KEY,
@@ -24,7 +26,6 @@ import {
 
 type RunningRecord = {
   tagId: string;
-  tagName: string;
   startedAt: Date;
   elapsedSeconds: number;
 };
@@ -68,6 +69,10 @@ function formatTimer(totalSeconds: number) {
     .join(":");
 }
 
+function getElapsedSeconds(startedAt: Date) {
+  return Math.max(0, Math.floor((Date.now() - startedAt.getTime()) / 1000));
+}
+
 function formatRecordTime(date: Date) {
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -109,9 +114,15 @@ export default function DashboardPage() {
   useEffect(() => {
     const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
     const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
+    const storedActiveTimer = window.localStorage.getItem(
+      ACTIVE_TIMER_STORAGE_KEY,
+    );
     const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
     const parsedRecords = storedRecords
       ? parseStoredRecords(storedRecords)
+      : null;
+    const parsedActiveTimer = storedActiveTimer
+      ? parseStoredActiveTimer(storedActiveTimer)
       : null;
 
     const timeoutId = window.setTimeout(() => {
@@ -132,6 +143,18 @@ export default function DashboardPage() {
 
       if (parsedRecords) {
         setRecords(attachTagIdsToRecords(parsedRecords, loadedTags));
+      }
+
+      if (parsedActiveTimer) {
+        const startedAt = new Date(parsedActiveTimer.startedAt);
+
+        setRunningRecord({
+          tagId: parsedActiveTimer.tagId,
+          startedAt,
+          elapsedSeconds: getElapsedSeconds(startedAt),
+        });
+      } else if (storedActiveTimer) {
+        window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
       }
 
       setIsStorageReady(true);
@@ -166,9 +189,7 @@ export default function DashboardPage() {
         currentRecord
           ? {
               ...currentRecord,
-              elapsedSeconds: Math.floor(
-                (Date.now() - currentRecord.startedAt.getTime()) / 1000,
-              ),
+              elapsedSeconds: getElapsedSeconds(currentRecord.startedAt),
             }
           : null,
       );
@@ -229,12 +250,20 @@ export default function DashboardPage() {
       return;
     }
 
+    const startedAt = new Date();
+
     setRunningRecord({
       tagId: selectedTag.id,
-      tagName: selectedTag.name,
-      startedAt: new Date(),
+      startedAt,
       elapsedSeconds: 0,
     });
+    window.localStorage.setItem(
+      ACTIVE_TIMER_STORAGE_KEY,
+      JSON.stringify({
+        tagId: selectedTag.id,
+        startedAt: startedAt.toISOString(),
+      }),
+    );
   };
 
   const handleStop = () => {
@@ -255,7 +284,9 @@ export default function DashboardPage() {
         id: stoppedAt.getTime(),
         date: todayValue,
         tagId: runningRecord.tagId,
-        tag: runningRecord.tagName,
+        tag:
+          tags.find((tag) => tag.id === runningRecord.tagId)?.name ??
+          "削除済みタグ",
         start: formatRecordTime(runningRecord.startedAt),
         end: formatRecordTime(stoppedAt),
         minutes,
@@ -263,11 +294,13 @@ export default function DashboardPage() {
       },
     ]);
     setRunningRecord(null);
+    window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
   };
 
   const handleResetRecords = () => {
     setRecords(initialActivityRecords);
     setRunningRecord(null);
+    window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
 
     if (isStorageReady) {
       window.localStorage.setItem(
@@ -277,7 +310,12 @@ export default function DashboardPage() {
     }
   };
 
-  const currentTag = runningRecord?.tagName ?? selectedTag?.name ?? "タグなし";
+  const runningTag = runningRecord
+    ? tags.find((tag) => tag.id === runningRecord.tagId)
+    : null;
+  const currentTag = runningRecord
+    ? runningTag?.name ?? "削除済みタグ"
+    : selectedTag?.name ?? "タグなし";
   const currentTimer = formatTimer(runningRecord?.elapsedSeconds ?? 0);
 
   return (
