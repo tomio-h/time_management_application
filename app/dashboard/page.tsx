@@ -435,6 +435,12 @@ export default function DashboardPage() {
             >
               記録一覧
             </Link>
+            <Link
+              href="/calendar"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+            >
+              カレンダー
+            </Link>
           </div>
         </section>
 
