@@ -5,9 +5,9 @@ import {
   createActivityTag,
   getSortedActiveTags,
   initialActivityTags,
+  loadActivityTagsFromStorage,
   MAX_ACTIVITY_TAGS,
-  parseStoredTags,
-  TAGS_STORAGE_KEY,
+  saveActivityTagsToStorage,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
 
@@ -97,12 +97,11 @@ export default function TagsPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
-    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
+    const storedTags = loadActivityTagsFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      if (parsedTags) {
-        setTags(parsedTags);
+      if (storedTags) {
+        setTags(storedTags);
       }
 
       setIsStorageReady(true);
@@ -116,7 +115,7 @@ export default function TagsPage() {
       return;
     }
 
-    window.localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+    saveActivityTagsToStorage(tags);
   }, [isStorageReady, tags]);
 
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);

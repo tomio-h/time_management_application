@@ -203,6 +203,71 @@ export function parseStoredActiveTimer(value: string) {
   return null;
 }
 
+function getBrowserStorage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage;
+}
+
+export function loadActivityTagsFromStorage() {
+  const storage = getBrowserStorage();
+  const storedTags = storage?.getItem(TAGS_STORAGE_KEY);
+
+  return storedTags ? parseStoredTags(storedTags) : null;
+}
+
+export function saveActivityTagsToStorage(tags: ActivityTag[]) {
+  const storage = getBrowserStorage();
+
+  storage?.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+}
+
+export function removeActivityTagsFromStorage() {
+  const storage = getBrowserStorage();
+
+  storage?.removeItem(TAGS_STORAGE_KEY);
+}
+
+export function loadActivityRecordsFromStorage() {
+  const storage = getBrowserStorage();
+  const storedRecords = storage?.getItem(RECORDS_STORAGE_KEY);
+
+  return storedRecords ? parseStoredRecords(storedRecords) : null;
+}
+
+export function saveActivityRecordsToStorage(records: ActivityRecord[]) {
+  const storage = getBrowserStorage();
+
+  storage?.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+}
+
+export function removeActivityRecordsFromStorage() {
+  const storage = getBrowserStorage();
+
+  storage?.removeItem(RECORDS_STORAGE_KEY);
+}
+
+export function loadActiveTimerFromStorage() {
+  const storage = getBrowserStorage();
+  const storedActiveTimer = storage?.getItem(ACTIVE_TIMER_STORAGE_KEY);
+
+  return storedActiveTimer ? parseStoredActiveTimer(storedActiveTimer) : null;
+}
+
+export function saveActiveTimerToStorage(activeTimer: ActiveTimer) {
+  const storage = getBrowserStorage();
+
+  storage?.setItem(ACTIVE_TIMER_STORAGE_KEY, JSON.stringify(activeTimer));
+}
+
+export function removeActiveTimerFromStorage() {
+  const storage = getBrowserStorage();
+
+  storage?.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+}
+
 export function getSortedActiveTags(tags: ActivityTag[]) {
   return tags
     .filter((tag) => tag.isActive)

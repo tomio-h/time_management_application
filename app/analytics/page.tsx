@@ -17,10 +17,8 @@ import {
   getTagForRecord,
   initialActivityRecords,
   initialActivityTags,
-  parseStoredRecords,
-  parseStoredTags,
-  RECORDS_STORAGE_KEY,
-  TAGS_STORAGE_KEY,
+  loadActivityRecordsFromStorage,
+  loadActivityTagsFromStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
@@ -261,20 +259,16 @@ export default function AnalyticsPage() {
   );
 
   useEffect(() => {
-    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
-    const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
-    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
-    const parsedRecords = storedRecords
-      ? parseStoredRecords(storedRecords)
-      : null;
+    const storedTags = loadActivityTagsFromStorage();
+    const storedRecords = loadActivityRecordsFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      const loadedTags = parsedTags ?? initialActivityTags;
+      const loadedTags = storedTags ?? initialActivityTags;
 
       setTags(loadedTags);
 
-      if (parsedRecords) {
-        setRecords(attachTagIdsToRecords(parsedRecords, loadedTags));
+      if (storedRecords) {
+        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
       }
     }, 0);
 

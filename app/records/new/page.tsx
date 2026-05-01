@@ -7,10 +7,10 @@ import {
   getSortedActiveTags,
   initialActivityRecords,
   initialActivityTags,
-  parseStoredRecords,
-  parseStoredTags,
-  RECORDS_STORAGE_KEY,
-  TAGS_STORAGE_KEY,
+  loadActivityRecordsFromStorage,
+  loadActivityTagsFromStorage,
+  saveActivityRecordsToStorage,
+  saveActivityTagsToStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../../lib/time-wallet-storage";
@@ -69,22 +69,18 @@ export default function NewRecordPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
-    const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
-    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
-    const parsedRecords = storedRecords
-      ? parseStoredRecords(storedRecords)
-      : null;
+    const storedTags = loadActivityTagsFromStorage();
+    const storedRecords = loadActivityRecordsFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      const loadedTags = parsedTags ?? initialActivityTags;
+      const loadedTags = storedTags ?? initialActivityTags;
       const activeTags = getSortedActiveTags(loadedTags);
 
       setTags(loadedTags);
       setSelectedTagId(activeTags[0]?.id ?? "");
 
-      if (parsedRecords) {
-        setRecords(attachTagIdsToRecords(parsedRecords, loadedTags));
+      if (storedRecords) {
+        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
       }
 
       setIsStorageReady(true);
@@ -98,7 +94,7 @@ export default function NewRecordPage() {
       return;
     }
 
-    window.localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+    saveActivityTagsToStorage(tags);
   }, [isStorageReady, tags]);
 
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
@@ -137,7 +133,7 @@ export default function NewRecordPage() {
     };
     const nextRecords = [...records, nextRecord];
 
-    window.localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(nextRecords));
+    saveActivityRecordsToStorage(nextRecords);
     setRecords(nextRecords);
     router.push("/dashboard");
   };

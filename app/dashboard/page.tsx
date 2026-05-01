@@ -9,17 +9,18 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import {
-  ACTIVE_TIMER_STORAGE_KEY,
   attachTagIdsToRecords,
   getSortedActiveTags,
   getTagForRecord,
   initialActivityRecords,
   initialActivityTags,
-  parseStoredActiveTimer,
-  parseStoredRecords,
-  parseStoredTags,
-  RECORDS_STORAGE_KEY,
-  TAGS_STORAGE_KEY,
+  loadActiveTimerFromStorage,
+  loadActivityRecordsFromStorage,
+  loadActivityTagsFromStorage,
+  removeActiveTimerFromStorage,
+  saveActiveTimerToStorage,
+  saveActivityRecordsToStorage,
+  saveActivityTagsToStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
@@ -112,24 +113,15 @@ export default function DashboardPage() {
   const runningStartedAt = runningRecord?.startedAt.getTime();
 
   useEffect(() => {
-    const storedTags = window.localStorage.getItem(TAGS_STORAGE_KEY);
-    const storedRecords = window.localStorage.getItem(RECORDS_STORAGE_KEY);
-    const storedActiveTimer = window.localStorage.getItem(
-      ACTIVE_TIMER_STORAGE_KEY,
-    );
-    const parsedTags = storedTags ? parseStoredTags(storedTags) : null;
-    const parsedRecords = storedRecords
-      ? parseStoredRecords(storedRecords)
-      : null;
-    const parsedActiveTimer = storedActiveTimer
-      ? parseStoredActiveTimer(storedActiveTimer)
-      : null;
+    const storedTags = loadActivityTagsFromStorage();
+    const storedRecords = loadActivityRecordsFromStorage();
+    const storedActiveTimer = loadActiveTimerFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      const loadedTags = parsedTags ?? initialActivityTags;
+      const loadedTags = storedTags ?? initialActivityTags;
 
-      if (parsedTags) {
-        setTags(parsedTags);
+      if (storedTags) {
+        setTags(storedTags);
         setSelectedTagId((currentTagId) => {
           const activeTags = getSortedActiveTags(loadedTags);
 
@@ -141,20 +133,18 @@ export default function DashboardPage() {
         });
       }
 
-      if (parsedRecords) {
-        setRecords(attachTagIdsToRecords(parsedRecords, loadedTags));
+      if (storedRecords) {
+        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
       }
 
-      if (parsedActiveTimer) {
-        const startedAt = new Date(parsedActiveTimer.startedAt);
+      if (storedActiveTimer) {
+        const startedAt = new Date(storedActiveTimer.startedAt);
 
         setRunningRecord({
-          tagId: parsedActiveTimer.tagId,
+          tagId: storedActiveTimer.tagId,
           startedAt,
           elapsedSeconds: getElapsedSeconds(startedAt),
         });
-      } else if (storedActiveTimer) {
-        window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
       }
 
       setIsStorageReady(true);
@@ -168,7 +158,7 @@ export default function DashboardPage() {
       return;
     }
 
-    window.localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+    saveActivityRecordsToStorage(records);
   }, [isStorageReady, records]);
 
   useEffect(() => {
@@ -176,7 +166,7 @@ export default function DashboardPage() {
       return;
     }
 
-    window.localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(tags));
+    saveActivityTagsToStorage(tags);
   }, [isStorageReady, tags]);
 
   useEffect(() => {
@@ -257,13 +247,10 @@ export default function DashboardPage() {
       startedAt,
       elapsedSeconds: 0,
     });
-    window.localStorage.setItem(
-      ACTIVE_TIMER_STORAGE_KEY,
-      JSON.stringify({
-        tagId: selectedTag.id,
-        startedAt: startedAt.toISOString(),
-      }),
-    );
+    saveActiveTimerToStorage({
+      tagId: selectedTag.id,
+      startedAt: startedAt.toISOString(),
+    });
   };
 
   const handleStop = () => {
@@ -294,19 +281,16 @@ export default function DashboardPage() {
       },
     ]);
     setRunningRecord(null);
-    window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+    removeActiveTimerFromStorage();
   };
 
   const handleResetRecords = () => {
     setRecords(initialActivityRecords);
     setRunningRecord(null);
-    window.localStorage.removeItem(ACTIVE_TIMER_STORAGE_KEY);
+    removeActiveTimerFromStorage();
 
     if (isStorageReady) {
-      window.localStorage.setItem(
-        RECORDS_STORAGE_KEY,
-        JSON.stringify(initialActivityRecords),
-      );
+      saveActivityRecordsToStorage(initialActivityRecords);
     }
   };
 
