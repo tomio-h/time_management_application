@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Time Wallet
 
-## Getting Started
+**Time Wallet** は、活動時間をタグで記録し、円グラフ・カレンダー・分析画面で振り返るための時間管理Webアプリです。
 
-First, run the development server:
+家計簿が「お金の使い道」を見える化するように、Time Wallet は「時間の使い道」を見える化します。日々の授業、課題、研究、睡眠、趣味などをタグごとに記録し、自分の時間の使い方をあとから振り返れるようにすることを目的にしています。
+
+## 概要
+
+Time Wallet は「時間家計簿」として使える個人向けの時間管理アプリです。
+
+タイマーで今の活動を記録したり、あとから手動で記録を追加したりできます。保存した記録は一覧・カレンダー・分析画面で確認でき、タグ別の時間配分や日ごとの傾向を見直せます。
+
+スマホで日常的に使うことを想定し、PWAとしてホーム画面に追加してアプリのように起動できる構成にしています。
+
+## 主な機能
+
+- タイマー記録
+- 画面遷移しても継続する記録中タイマー
+- 手動記録追加
+- 記録一覧
+- 記録編集・削除
+- タグ管理
+- タグ色変更
+- カレンダー表示
+- 分析画面
+- localStorage保存
+- PWA対応
+
+## 画面一覧
+
+| パス | 内容 |
+| --- | --- |
+| `/` | トップページ |
+| `/dashboard` | 今日の記録、タイマー、タグ選択、履歴 |
+| `/records` | 保存済み記録の一覧、編集、削除 |
+| `/records/new` | 手動での記録追加 |
+| `/calendar` | 月間カレンダーと日別詳細 |
+| `/analytics` | タグ別・期間別の分析 |
+| `/tags` | 活動タグの追加、編集、削除、色変更 |
+
+## 使用技術
+
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Recharts
+- localStorage
+- PWA
+- Vercel
+
+## セットアップ
+
+依存関係をインストールします。
+
+```bash
+npm install
+```
+
+開発サーバーを起動します。
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで以下を開きます。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```txt
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+本番ビルドを確認します。
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## デプロイ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+デプロイ先URL:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```txt
+準備中
+```
 
-## Deploy on Vercel
+Vercel へのデプロイを想定しています。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## データ保存について
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+現在は Supabase や外部DBには接続せず、ブラウザの localStorage にデータを保存しています。
+
+保存対象:
+
+- 活動タグ
+- 時間記録
+- 記録中タイマー
+
+そのため、同じブラウザ・同じ端末内での個人利用を想定しています。
+
+## 今後の改善予定
+
+- Supabase認証
+- DB保存
+- ユーザーごとのデータ管理
+- 目標時間設定
+- 週/月レポート改善
+- データエクスポート
+
+## 開発メモ
+
+このアプリは、時間管理を「記録して終わり」ではなく、「あとから見直して生活を調整する」ためのツールとして開発しています。
+
+家計簿のように、時間もカテゴリごとに眺めることで、自分が何にどれだけ時間を使っているのかを直感的に把握できる体験を目指しています。
