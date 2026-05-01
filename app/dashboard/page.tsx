@@ -281,12 +281,12 @@ export default function DashboardPage() {
   const currentTimer = formatTimer(runningRecord?.elapsedSeconds ?? 0);
 
   return (
-    <main className="min-h-screen bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-zinc-500">時間家計簿</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               Time Wallet
             </h1>
           </div>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
         </header>
 
         <section className="grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-zinc-500">今日の記録</p>
@@ -309,7 +309,7 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4">
                 <p className="text-sm text-zinc-500">記録済み</p>
                 <p className="mt-2 text-2xl font-semibold text-zinc-950">
@@ -334,7 +334,7 @@ export default function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-lg bg-zinc-950 p-5 text-white shadow-sm">
+          <article className="rounded-lg bg-zinc-950 p-4 text-white shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-zinc-400">
@@ -361,7 +361,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleStop}
-                className="mt-6 h-11 w-full rounded-md bg-white px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200"
+                className="mt-6 h-14 w-full rounded-md bg-white px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-zinc-200"
               >
                 停止する
               </button>
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={handleStart}
                 disabled={!selectedTag}
-                className="mt-6 h-11 w-full rounded-md bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                className="mt-6 h-14 w-full rounded-md bg-emerald-400 px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
                 開始する
               </button>
@@ -378,7 +378,7 @@ export default function DashboardPage() {
           </article>
         </section>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-zinc-500">
@@ -401,17 +401,17 @@ export default function DashboardPage() {
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => setSelectedTagId(tag.id)}
-                  className={`flex h-12 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors ${
+                  className={`flex h-14 min-w-0 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors ${
                     isSelected
                       ? "border-zinc-950 bg-zinc-950 text-white"
                       : "border-zinc-200 bg-zinc-50 text-zinc-800 hover:border-zinc-300 hover:bg-white"
                   }`}
                 >
                   <span
-                    className="h-2.5 w-2.5 rounded-full"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: tag.color }}
                   />
-                  {tag.name}
+                  <span className="truncate">{tag.name}</span>
                 </button>
               );
             })}
@@ -424,7 +424,7 @@ export default function DashboardPage() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
               <p className="text-sm font-medium text-zinc-500">
                 今日の時間配分
@@ -434,14 +434,14 @@ export default function DashboardPage() {
               </h2>
             </div>
 
-            <div className="mt-4 flex h-[18rem] min-h-[18rem] w-full min-w-0 items-center justify-center overflow-hidden">
-              <PieChart width={260} height={260}>
+            <div className="mt-4 flex h-[16rem] min-h-[16rem] w-full min-w-0 items-center justify-center overflow-hidden sm:h-[18rem] sm:min-h-[18rem]">
+              <PieChart width={240} height={240}>
                 <Pie
                   data={chartData}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={70}
-                  outerRadius={106}
+                  innerRadius={64}
+                  outerRadius={98}
                   paddingAngle={3}
                   strokeWidth={0}
                 >
@@ -453,7 +453,7 @@ export default function DashboardPage() {
               </PieChart>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-3">
               {chartData.map((entry) => (
                 <div
                   key={entry.id}
@@ -474,7 +474,7 @@ export default function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-zinc-500">今日の履歴</p>
@@ -485,7 +485,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleResetRecords}
-                className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 sm:w-auto"
               >
                 データをリセット
               </button>
@@ -498,7 +498,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={record.id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-4"
                   >
                     <span
                       className="h-3 w-3 rounded-full"

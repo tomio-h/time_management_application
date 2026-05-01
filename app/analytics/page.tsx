@@ -341,28 +341,28 @@ export default function AnalyticsPage() {
   const topTagSummaries = tagBreakdown.slice(0, 3);
   const unrecordedDescription = unrecordedDescriptions[period];
   const barChartWidth =
-    period === "month" ? Math.max(720, daySummaries.length * 28) : 420;
+    period === "month" ? Math.max(640, daySummaries.length * 24) : 340;
 
   return (
-    <main className="min-h-screen bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               分析
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="grid grid-cols-3 gap-2 rounded-md bg-zinc-100 p-1">
             {(Object.keys(periodLabels) as Period[]).map((periodKey) => (
               <button
                 key={periodKey}
                 type="button"
                 onClick={() => setPeriod(periodKey)}
-                className={`h-10 rounded-md text-sm font-semibold transition-colors ${
+                className={`h-12 rounded-md text-base font-semibold transition-colors ${
                   period === periodKey
                     ? "bg-zinc-950 text-white"
                     : "text-zinc-600 hover:bg-white"
@@ -375,15 +375,15 @@ export default function AnalyticsPage() {
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <p className="text-sm font-medium text-zinc-500">合計記録時間</p>
-            <p className="mt-2 text-3xl font-semibold text-zinc-950">
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
               {formatMinutes(recordedMinutes)}
             </p>
           </article>
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <p className="text-sm font-medium text-zinc-500">未記録時間</p>
-            <p className="mt-2 text-3xl font-semibold text-zinc-950">
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
               {formatMinutes(unrecordedMinutes)}
             </p>
             <p className="mt-1 text-xs font-medium text-zinc-400">
@@ -393,33 +393,33 @@ export default function AnalyticsPage() {
               {unrecordedDescription}
             </p>
           </article>
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <p className="text-sm font-medium text-zinc-500">記録済み割合</p>
-            <p className="mt-2 text-3xl font-semibold text-zinc-950">
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
               {recordedRatio}%
             </p>
           </article>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
               <p className="text-sm font-medium text-zinc-500">タグ別内訳</p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">
                 タグ別時間配分
               </h2>
             </div>
-            <div className="mt-4 flex h-[18rem] min-h-[18rem] w-full min-w-0 items-center justify-center overflow-hidden">
+            <div className="mt-4 flex h-[16rem] min-h-[16rem] w-full min-w-0 items-center justify-center overflow-hidden sm:h-[18rem] sm:min-h-[18rem]">
               {tagBreakdown.length === 0 ? (
                 <p className="text-sm text-zinc-500">この期間の記録はありません</p>
               ) : (
-                <PieChart width={260} height={260}>
+                <PieChart width={240} height={240}>
                   <Pie
                     data={tagBreakdown}
                     dataKey="minutes"
                     nameKey="name"
-                    innerRadius={70}
-                    outerRadius={106}
+                    innerRadius={64}
+                    outerRadius={98}
                     paddingAngle={3}
                     strokeWidth={0}
                   >
@@ -472,7 +472,7 @@ export default function AnalyticsPage() {
             ) : null}
           </article>
 
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
               <p className="text-sm font-medium text-zinc-500">
                 {periodLabels[period]}の推移
@@ -481,7 +481,7 @@ export default function AnalyticsPage() {
                 日別記録時間
               </h2>
             </div>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 w-full overflow-x-auto">
               <BarChart
                 width={barChartWidth}
                 height={260}
@@ -575,7 +575,7 @@ export default function AnalyticsPage() {
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
               <p className="text-sm font-medium text-zinc-500">タグ別ランキング</p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">
@@ -617,7 +617,7 @@ export default function AnalyticsPage() {
             )}
           </article>
 
-          <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
               <p className="text-sm font-medium text-zinc-500">振り返り</p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">

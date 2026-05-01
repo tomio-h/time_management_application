@@ -143,26 +143,26 @@ export default function NewRecordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               手動記録追加
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <label className="flex flex-col gap-2">
               <span className="text-sm font-semibold text-zinc-700">日付</span>
               <input
                 type="date"
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
-                className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
               />
             </label>
 
@@ -173,7 +173,7 @@ export default function NewRecordPage() {
               <select
                 value={selectedTag?.id ?? ""}
                 onChange={(event) => setSelectedTagId(event.target.value)}
-                className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
               >
                 {activeTags.map((tag) => (
                   <option key={tag.id} value={tag.id}>
@@ -192,7 +192,7 @@ export default function NewRecordPage() {
                   type="time"
                   value={startTime}
                   onChange={(event) => setStartTime(event.target.value)}
-                  className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                  className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
                 />
               </label>
 
@@ -204,7 +204,7 @@ export default function NewRecordPage() {
                   type="time"
                   value={endTime}
                   onChange={(event) => setEndTime(event.target.value)}
-                  className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                  className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
                 />
               </label>
             </div>
@@ -219,7 +219,7 @@ export default function NewRecordPage() {
                 value={memo}
                 onChange={(event) => setMemo(event.target.value)}
                 rows={4}
-                className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+                className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
                 placeholder="必要に応じてメモを残す"
               />
             </label>
@@ -239,7 +239,7 @@ export default function NewRecordPage() {
             <button
               type="submit"
               disabled={activeTags.length === 0}
-              className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+              className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
             >
               保存する
             </button>

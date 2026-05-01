@@ -50,7 +50,7 @@ function ColorPicker({ value, onChange, label }: ColorPickerProps) {
             type="color"
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+            className="h-11 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
           />
         </label>
       </div>
@@ -66,7 +66,7 @@ function ColorPicker({ value, onChange, label }: ColorPickerProps) {
               aria-label={color.label}
               aria-pressed={isSelected}
               onClick={() => onChange(color.value)}
-              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-transform hover:scale-105 ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${
                 isSelected
                   ? "border-zinc-950 ring-2 ring-zinc-950 ring-offset-2"
                   : "border-white ring-1 ring-zinc-200"
@@ -204,18 +204,18 @@ export default function TagsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               活動タグ管理
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-zinc-500">
               {activeTags.length}/{MAX_ACTIVITY_TAGS}
@@ -234,7 +234,7 @@ export default function TagsPage() {
               value={newTagName}
               onChange={(event) => setNewTagName(event.target.value)}
               placeholder="タグ名"
-              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
             />
             <ColorPicker
               value={newTagColor}
@@ -244,7 +244,7 @@ export default function TagsPage() {
             <button
               type="submit"
               disabled={!canAddTag}
-              className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
+              className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
             >
               追加する
             </button>
@@ -257,7 +257,7 @@ export default function TagsPage() {
           ) : null}
         </section>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
+        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div>
             <p className="text-sm font-medium text-zinc-500">現在の活動タグ</p>
             <h2 className="mt-1 text-xl font-semibold text-zinc-950">
@@ -290,7 +290,7 @@ export default function TagsPage() {
                       event.currentTarget.blur();
                     }
                   }}
-                  className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
+                  className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
                 />
                 <ColorPicker
                   value={tag.color}
@@ -300,7 +300,7 @@ export default function TagsPage() {
                 <button
                   type="button"
                   onClick={() => handleDeleteTag(tag)}
-                  className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 lg:self-start"
+                  className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700 lg:self-start"
                 >
                   削除
                 </button>

@@ -51,7 +51,7 @@ function getLinkClassName(isActive: boolean) {
 }
 
 function getMobileLinkClassName(isActive: boolean) {
-  return `flex h-10 items-center justify-center rounded-md px-2 text-xs font-semibold transition-colors ${
+  return `flex min-h-12 items-center justify-center rounded-lg px-2 text-center text-[0.72rem] font-semibold leading-tight transition-colors ${
     isActive
       ? "bg-zinc-950 text-white"
       : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
@@ -95,9 +95,9 @@ export function AppNavigation() {
 
       <nav
         aria-label="主要画面"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-2 py-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur sm:hidden"
       >
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-3 gap-2">
           {navigationItems.map((item) => {
             const isActive = item.isActive(pathname);
 
