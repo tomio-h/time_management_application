@@ -7,7 +7,7 @@ export type ActivityTag = {
 };
 
 export type ActivityRecord = {
-  id: number;
+  id: number | string;
   date?: string;
   tagId?: string;
   tag: string;

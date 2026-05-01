@@ -39,6 +39,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      time_records: {
+        Row: {
+          id: string;
+          user_id: string;
+          tag_id: string | null;
+          tag_name_snapshot: string;
+          started_at: string;
+          ended_at: string;
+          duration_minutes: number;
+          memo: string | null;
+          legacy_local_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          tag_id?: string | null;
+          tag_name_snapshot: string;
+          started_at: string;
+          ended_at: string;
+          duration_minutes: number;
+          memo?: string | null;
+          legacy_local_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          tag_id?: string | null;
+          tag_name_snapshot?: string;
+          started_at?: string;
+          ended_at?: string;
+          duration_minutes?: number;
+          memo?: string | null;
+          legacy_local_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<never, never>;
     Functions: Record<never, never>;

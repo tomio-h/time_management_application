@@ -1,19 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import {
-  attachTagIdsToRecords,
+  addSupabaseTimeRecord,
+  createDateTimeFromDateAndTime,
+} from "../../lib/supabase/time-records";
+import {
   getSortedActiveTags,
   initialActivityRecords,
-  initialActivityTags,
-  loadActivityRecordsFromStorage,
-  loadActivityTagsFromStorage,
   saveActivityRecordsToStorage,
-  saveActivityTagsToStorage,
   type ActivityRecord,
-  type ActivityTag,
 } from "../../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../../lib/use-activity-tags-source";
+import { useTimeRecordsSource } from "../../lib/use-time-records-source";
 
 function getTodayValue() {
   const today = new Date();
@@ -56,59 +56,54 @@ function formatMinutes(minutes: number) {
 
 export default function NewRecordPage() {
   const router = useRouter();
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
-  const [records, setRecords] = useState<ActivityRecord[]>(
-    initialActivityRecords,
-  );
-  const [isStorageReady, setIsStorageReady] = useState(false);
+  const {
+    tags,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
+  const {
+    records,
+    setRecords,
+    source: recordsSource,
+    userId,
+    isReady: isRecordsReady,
+    errorMessage: recordLoadErrorMessage,
+  } = useTimeRecordsSource(tags, isTagsReady, {
+    fallbackRecords: initialActivityRecords,
+    autoSaveLocal: false,
+  });
   const [date, setDate] = useState(getTodayValue);
   const [selectedTagId, setSelectedTagId] = useState("research");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
   const [memo, setMemo] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
-    const storedRecords = loadActivityRecordsFromStorage();
-
-    const timeoutId = window.setTimeout(() => {
-      const loadedTags = storedTags ?? initialActivityTags;
-      const activeTags = getSortedActiveTags(loadedTags);
-
-      setTags(loadedTags);
-      setSelectedTagId(activeTags[0]?.id ?? "");
-
-      if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
-      }
-
-      setIsStorageReady(true);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (!isStorageReady) {
-      return;
-    }
-
-    saveActivityTagsToStorage(tags);
-  }, [isStorageReady, tags]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
+  const visibleActiveTags = isTagsReady ? activeTags : [];
   const selectedTag =
-    activeTags.find((tag) => tag.id === selectedTagId) ?? activeTags[0] ?? null;
+    visibleActiveTags.find((tag) => tag.id === selectedTagId) ??
+    visibleActiveTags[0] ??
+    null;
   const startMinutes = timeToMinutes(startTime);
   const endMinutes = timeToMinutes(endTime);
   const durationMinutes =
     startMinutes !== null && endMinutes !== null ? endMinutes - startMinutes : 0;
   const isInvalidTime =
     startMinutes === null || endMinutes === null || durationMinutes <= 0;
+  const isUsingSupabase = recordsSource === "supabase" && userId !== null;
+  const statusMessage =
+    errorMessage || tagLoadErrorMessage || recordLoadErrorMessage;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage("");
+
+    if (!isTagsReady || !isRecordsReady) {
+      setErrorMessage("データを読み込み中です。");
+      return;
+    }
 
     if (!selectedTag) {
       setErrorMessage("活動タグを選択してください。");
@@ -117,6 +112,41 @@ export default function NewRecordPage() {
 
     if (isInvalidTime) {
       setErrorMessage("終了時刻は開始時刻より後にしてください。");
+      return;
+    }
+
+    const startedAt = createDateTimeFromDateAndTime(date, startTime);
+    const endedAt = createDateTimeFromDateAndTime(date, endTime);
+
+    if (!startedAt || !endedAt) {
+      setErrorMessage("日付と時刻を正しく入力してください。");
+      return;
+    }
+
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        await addSupabaseTimeRecord({
+          userId,
+          tagId: selectedTag.id,
+          tagNameSnapshot: selectedTag.name,
+          startedAt,
+          endedAt,
+          durationMinutes,
+          memo,
+        });
+        router.push("/dashboard");
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "時間記録を保存できませんでした。",
+        );
+      } finally {
+        setIsSaving(false);
+      }
+
       return;
     }
 
@@ -171,7 +201,7 @@ export default function NewRecordPage() {
                 onChange={(event) => setSelectedTagId(event.target.value)}
                 className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
               >
-                {activeTags.map((tag) => (
+                {visibleActiveTags.map((tag) => (
                   <option key={tag.id} value={tag.id}>
                     {tag.name}
                   </option>
@@ -220,13 +250,19 @@ export default function NewRecordPage() {
               />
             </label>
 
-            {errorMessage ? (
+            {statusMessage ? (
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-                {errorMessage}
+                {statusMessage}
               </p>
             ) : null}
 
-            {activeTags.length === 0 ? (
+            {!isTagsReady || !isRecordsReady ? (
+              <p className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+                データを読み込み中です。
+              </p>
+            ) : null}
+
+            {isTagsReady && visibleActiveTags.length === 0 ? (
               <p className="rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
                 活動タグがありません。/tags でタグを追加してください。
               </p>
@@ -234,10 +270,15 @@ export default function NewRecordPage() {
 
             <button
               type="submit"
-              disabled={activeTags.length === 0}
+              disabled={
+                !isTagsReady ||
+                !isRecordsReady ||
+                visibleActiveTags.length === 0 ||
+                isSaving
+              }
               className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
             >
-              保存する
+              {isSaving ? "保存中" : "保存する"}
             </button>
           </form>
         </section>

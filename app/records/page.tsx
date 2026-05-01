@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  attachTagIdsToRecords,
+  createDateTimeFromDateAndTime,
+  deleteSupabaseTimeRecord,
+  updateSupabaseTimeRecord,
+} from "../lib/supabase/time-records";
+import {
   getSortedActiveTags,
   getTagForRecord,
-  initialActivityTags,
-  loadActivityRecordsFromStorage,
-  loadActivityTagsFromStorage,
-  saveActivityRecordsToStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../lib/use-activity-tags-source";
+import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
 type EditDraft = {
   date: string;
@@ -21,6 +23,8 @@ type EditDraft = {
   memo: string;
   errorMessage: string;
 };
+
+const emptyActivityRecords: ActivityRecord[] = [];
 
 function getTodayValue() {
   const today = new Date();
@@ -69,6 +73,10 @@ function getSortValue(record: ActivityRecord) {
   return `${getRecordDate(record)}T${record.end || record.start}`;
 }
 
+function getRecordIdSortValue(record: ActivityRecord) {
+  return typeof record.id === "number" ? record.id : getSortValue(record);
+}
+
 function getDurationMinutes(start: string, end: string) {
   const startMinutes = timeToMinutes(start);
   const endMinutes = timeToMinutes(end);
@@ -108,27 +116,30 @@ function createEditDraft(record: ActivityRecord, tags: ActivityTag[]): EditDraft
 }
 
 export default function RecordsPage() {
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
-  const [records, setRecords] = useState<ActivityRecord[]>([]);
-  const [editingRecordId, setEditingRecordId] = useState<number | null>(null);
+  const {
+    tags,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
+  const {
+    records,
+    setRecords,
+    source: recordsSource,
+    userId,
+    isReady: isRecordsReady,
+    errorMessage: recordLoadErrorMessage,
+  } = useTimeRecordsSource(tags, isTagsReady, {
+    fallbackRecords: emptyActivityRecords,
+  });
+  const [editingRecordId, setEditingRecordId] = useState<
+    ActivityRecord["id"] | null
+  >(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
-
-  useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
-    const storedRecords = loadActivityRecordsFromStorage();
-
-    const timeoutId = window.setTimeout(() => {
-      const loadedTags = storedTags ?? initialActivityTags;
-
-      setTags(loadedTags);
-
-      if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const isUsingSupabase = recordsSource === "supabase" && userId !== null;
+  const statusMessage =
+    message || tagLoadErrorMessage || recordLoadErrorMessage;
 
   const sortedRecords = useMemo(
     () =>
@@ -141,12 +152,14 @@ export default function RecordsPage() {
           return dateCompare;
         }
 
-        return secondRecord.id - firstRecord.id;
+        return String(getRecordIdSortValue(secondRecord)).localeCompare(
+          String(getRecordIdSortValue(firstRecord)),
+        );
       }),
     [records],
   );
 
-  const handleDeleteRecord = (recordToDelete: ActivityRecord) => {
+  const handleDeleteRecord = async (recordToDelete: ActivityRecord) => {
     if (
       !window.confirm(
         `${getRecordDate(recordToDelete)} ${recordToDelete.start}-${recordToDelete.end} の記録を削除しますか？`,
@@ -155,12 +168,37 @@ export default function RecordsPage() {
       return;
     }
 
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        await deleteSupabaseTimeRecord(userId, String(recordToDelete.id));
+        setRecords((currentRecords) =>
+          currentRecords.filter((record) => record.id !== recordToDelete.id),
+        );
+        setMessage("時間記録を削除しました。");
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "時間記録を削除できませんでした。",
+        );
+      } finally {
+        setIsSaving(false);
+      }
+
+      if (editingRecordId === recordToDelete.id) {
+        setEditingRecordId(null);
+        setEditDraft(null);
+      }
+
+      return;
+    }
+
     setRecords((currentRecords) => {
       const nextRecords = currentRecords.filter(
         (record) => record.id !== recordToDelete.id,
       );
-
-      saveActivityRecordsToStorage(nextRecords);
 
       return nextRecords;
     });
@@ -174,6 +212,7 @@ export default function RecordsPage() {
   const handleStartEdit = (record: ActivityRecord) => {
     setEditingRecordId(record.id);
     setEditDraft(createEditDraft(record, tags));
+    setMessage("");
   };
 
   const handleCancelEdit = () => {
@@ -192,7 +231,7 @@ export default function RecordsPage() {
     );
   };
 
-  const handleSaveEdit = (recordToUpdate: ActivityRecord) => {
+  const handleSaveEdit = async (recordToUpdate: ActivityRecord) => {
     if (!editDraft) {
       return;
     }
@@ -225,6 +264,66 @@ export default function RecordsPage() {
       return;
     }
 
+    const startedAt = createDateTimeFromDateAndTime(
+      editDraft.date,
+      editDraft.start,
+    );
+    const endedAt = createDateTimeFromDateAndTime(editDraft.date, editDraft.end);
+
+    if (!startedAt || !endedAt) {
+      setEditDraft((currentDraft) =>
+        currentDraft
+          ? {
+              ...currentDraft,
+              errorMessage: "日付と時刻を正しく入力してください。",
+            }
+          : currentDraft,
+      );
+      return;
+    }
+
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        const updatedRecord = await updateSupabaseTimeRecord({
+          userId,
+          recordId: String(recordToUpdate.id),
+          tagId: selectedTag.id,
+          tagNameSnapshot: selectedTag.name,
+          startedAt,
+          endedAt,
+          durationMinutes,
+          memo: editDraft.memo,
+        });
+
+        setRecords((currentRecords) =>
+          currentRecords.map((record) =>
+            record.id === recordToUpdate.id ? updatedRecord : record,
+          ),
+        );
+        setEditingRecordId(null);
+        setEditDraft(null);
+        setMessage("時間記録を更新しました。");
+      } catch (error) {
+        setEditDraft((currentDraft) =>
+          currentDraft
+            ? {
+                ...currentDraft,
+                errorMessage:
+                  error instanceof Error
+                    ? error.message
+                    : "時間記録を更新できませんでした。",
+              }
+            : currentDraft,
+        );
+      } finally {
+        setIsSaving(false);
+      }
+
+      return;
+    }
+
     setRecords((currentRecords) => {
       const nextRecords = currentRecords.map((record) =>
         record.id === recordToUpdate.id
@@ -241,8 +340,6 @@ export default function RecordsPage() {
             }
           : record,
       );
-
-      saveActivityRecordsToStorage(nextRecords);
 
       return nextRecords;
     });
@@ -273,11 +370,25 @@ export default function RecordsPage() {
             </h2>
           </div>
 
-          {sortedRecords.length === 0 ? (
+          {!isTagsReady || !isRecordsReady ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
+              時間記録を読み込み中です。
+            </p>
+          ) : null}
+
+          {statusMessage ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-600">
+              {statusMessage}
+            </p>
+          ) : null}
+
+          {isRecordsReady && sortedRecords.length === 0 ? (
             <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
               まだ記録がありません
             </p>
-          ) : (
+          ) : null}
+
+          {isRecordsReady && sortedRecords.length > 0 ? (
             <div className="mt-4 flex flex-col gap-3">
               {sortedRecords.map((record) => {
                 const tag = getTagForRecord(record, tags);
@@ -320,13 +431,15 @@ export default function RecordsPage() {
                         <button
                           type="button"
                           onClick={() => handleStartEdit(record)}
+                          disabled={isSaving}
                           className="h-11 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
                         >
                           編集
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteRecord(record)}
+                          onClick={() => void handleDeleteRecord(record)}
+                          disabled={isSaving}
                           className="h-11 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
                         >
                           削除
@@ -435,14 +548,16 @@ export default function RecordsPage() {
                         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                           <button
                             type="button"
-                            onClick={() => handleSaveEdit(record)}
-                            className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800"
+                            onClick={() => void handleSaveEdit(record)}
+                            disabled={isSaving}
+                            className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
                           >
-                            保存する
+                            {isSaving ? "保存中" : "保存する"}
                           </button>
                           <button
                             type="button"
                             onClick={handleCancelEdit}
+                            disabled={isSaving}
                             className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
                           >
                             キャンセル
@@ -481,7 +596,7 @@ export default function RecordsPage() {
                 );
               })}
             </div>
-          )}
+          ) : null}
         </section>
       </div>
     </main>

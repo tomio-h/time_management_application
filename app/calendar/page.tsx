@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  attachTagIdsToRecords,
   getTagForRecord,
-  initialActivityTags,
-  loadActivityRecordsFromStorage,
-  loadActivityTagsFromStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../lib/use-activity-tags-source";
+import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
 type DailySummary = {
   date: string;
@@ -19,6 +17,7 @@ type DailySummary = {
   topTagColor: string;
 };
 
+const emptyActivityRecords: ActivityRecord[] = [];
 const DAY_MINUTES = 24 * 60;
 const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -146,25 +145,20 @@ export default function CalendarPage() {
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(todayValue);
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
-  const [records, setRecords] = useState<ActivityRecord[]>([]);
-
-  useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
-    const storedRecords = loadActivityRecordsFromStorage();
-
-    const timeoutId = window.setTimeout(() => {
-      const loadedTags = storedTags ?? initialActivityTags;
-
-      setTags(loadedTags);
-
-      if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+  const {
+    tags,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
+  const {
+    records,
+    isReady: isRecordsReady,
+    errorMessage: recordLoadErrorMessage,
+  } = useTimeRecordsSource(tags, isTagsReady, {
+    fallbackRecords: emptyActivityRecords,
+    autoSaveLocal: false,
+  });
+  const statusMessage = tagLoadErrorMessage || recordLoadErrorMessage;
 
   const monthCells = useMemo(() => createMonthCells(monthDate), [monthDate]);
   const dailySummaries = useMemo(
@@ -210,6 +204,18 @@ export default function CalendarPage() {
         </header>
 
         <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          {!isTagsReady || !isRecordsReady ? (
+            <p className="mb-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              時間記録を読み込み中です。
+            </p>
+          ) : null}
+
+          {statusMessage ? (
+            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {statusMessage}
+            </p>
+          ) : null}
+
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:justify-between">
             <button
               type="button"

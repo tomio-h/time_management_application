@@ -8,20 +8,17 @@ import {
   Tooltip,
   type TooltipContentProps,
 } from "recharts";
+import { addSupabaseTimeRecord } from "../lib/supabase/time-records";
 import {
-  attachTagIdsToRecords,
   getSortedActiveTags,
   getTagForRecord,
   initialActivityRecords,
-  initialActivityTags,
   loadActiveTimerFromStorage,
-  loadActivityRecordsFromStorage,
   removeActiveTimerFromStorage,
   saveActiveTimerToStorage,
-  saveActivityRecordsToStorage,
-  type ActivityRecord,
 } from "../lib/time-wallet-storage";
 import { useActivityTagsSource } from "../lib/use-activity-tags-source";
+import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
 type RunningRecord = {
   tagId: string;
@@ -104,25 +101,31 @@ export default function DashboardPage() {
     isReady: isTagsReady,
     errorMessage: tagLoadErrorMessage,
   } = useActivityTagsSource();
-  const [records, setRecords] = useState<ActivityRecord[]>(
-    initialActivityRecords,
-  );
-  const [isStorageReady, setIsStorageReady] = useState(false);
+  const {
+    records,
+    setRecords,
+    source: recordsSource,
+    userId,
+    isReady: isRecordsReady,
+    errorMessage: recordLoadErrorMessage,
+  } = useTimeRecordsSource(tags, isTagsReady, {
+    fallbackRecords: initialActivityRecords,
+  });
   const [runningRecord, setRunningRecord] = useState<RunningRecord | null>(
     null,
   );
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
+  const [message, setMessage] = useState("");
 
   const runningStartedAt = runningRecord?.startedAt.getTime();
+  const isDataReady = isTagsReady && isRecordsReady;
+  const isUsingSupabase = recordsSource === "supabase" && userId !== null;
+  const statusMessage = message || tagLoadErrorMessage || recordLoadErrorMessage;
 
   useEffect(() => {
-    const storedRecords = loadActivityRecordsFromStorage();
     const storedActiveTimer = loadActiveTimerFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, initialActivityTags));
-      }
-
       if (storedActiveTimer) {
         const startedAt = new Date(storedActiveTimer.startedAt);
 
@@ -132,20 +135,10 @@ export default function DashboardPage() {
           elapsedSeconds: getElapsedSeconds(startedAt),
         });
       }
-
-      setIsStorageReady(true);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
   }, []);
-
-  useEffect(() => {
-    if (!isStorageReady) {
-      return;
-    }
-
-    saveActivityRecordsToStorage(records);
-  }, [isStorageReady, records]);
 
   useEffect(() => {
     if (runningStartedAt === undefined) {
@@ -234,8 +227,13 @@ export default function DashboardPage() {
     });
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     if (!runningRecord) {
+      return;
+    }
+
+    if (!isDataReady) {
+      setMessage("データを読み込み中です。");
       return;
     }
 
@@ -245,6 +243,38 @@ export default function DashboardPage() {
       Math.floor((stoppedAt.getTime() - runningRecord.startedAt.getTime()) / 1000),
     );
     const minutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+    const recordTag = tags.find((tag) => tag.id === runningRecord.tagId);
+    const tagNameSnapshot = recordTag?.name ?? "削除済みタグ";
+
+    if (isUsingSupabase) {
+      setIsSavingRecord(true);
+
+      try {
+        const addedRecord = await addSupabaseTimeRecord({
+          userId,
+          tagId: recordTag?.id ?? null,
+          tagNameSnapshot,
+          startedAt: runningRecord.startedAt,
+          endedAt: stoppedAt,
+          durationMinutes: minutes,
+        });
+
+        setRecords((currentRecords) => [...currentRecords, addedRecord]);
+        setRunningRecord(null);
+        removeActiveTimerFromStorage();
+        setMessage("");
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : "時間記録を保存できませんでした。",
+        );
+      } finally {
+        setIsSavingRecord(false);
+      }
+
+      return;
+    }
 
     setRecords((currentRecords) => [
       ...currentRecords,
@@ -252,9 +282,7 @@ export default function DashboardPage() {
         id: stoppedAt.getTime(),
         date: todayValue,
         tagId: runningRecord.tagId,
-        tag:
-          tags.find((tag) => tag.id === runningRecord.tagId)?.name ??
-          "削除済みタグ",
+        tag: tagNameSnapshot,
         start: formatRecordTime(runningRecord.startedAt),
         end: formatRecordTime(stoppedAt),
         minutes,
@@ -266,13 +294,21 @@ export default function DashboardPage() {
   };
 
   const handleResetRecords = () => {
+    if (!isDataReady) {
+      return;
+    }
+
+    if (isUsingSupabase) {
+      setRunningRecord(null);
+      removeActiveTimerFromStorage();
+      setMessage("ログイン中の記録は記録一覧から編集・削除してください。");
+      return;
+    }
+
     setRecords(initialActivityRecords);
     setRunningRecord(null);
     removeActiveTimerFromStorage();
-
-    if (isStorageReady) {
-      saveActivityRecordsToStorage(initialActivityRecords);
-    }
+    setMessage("");
   };
 
   const runningTag = runningRecord
@@ -363,16 +399,17 @@ export default function DashboardPage() {
             {runningRecord ? (
               <button
                 type="button"
-                onClick={handleStop}
-                className="mt-6 h-14 w-full rounded-md bg-white px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-zinc-200"
+                onClick={() => void handleStop()}
+                disabled={isSavingRecord || !isDataReady}
+                className="mt-6 h-14 w-full rounded-md bg-white px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
-                停止する
+                {isSavingRecord ? "保存中" : "停止する"}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleStart}
-                disabled={!selectedTag}
+                disabled={!selectedTag || !isDataReady}
                 className="mt-6 h-14 w-full rounded-md bg-emerald-400 px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
               >
                 開始する
@@ -393,6 +430,18 @@ export default function DashboardPage() {
               選択中: {selectedTag?.name ?? "タグなし"}
             </p>
           </div>
+
+          {!isTagsReady || !isRecordsReady ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              データを読み込み中です。
+            </p>
+          ) : null}
+
+          {statusMessage ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+              {statusMessage}
+            </p>
+          ) : null}
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
             {visibleActiveTags.map((tag) => {
@@ -498,7 +547,8 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={handleResetRecords}
-                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 sm:w-auto"
+                disabled={!isDataReady || isSavingRecord}
+                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 sm:w-auto"
               >
                 データをリセット
               </button>

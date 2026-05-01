@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -13,15 +13,13 @@ import {
   type TooltipContentProps,
 } from "recharts";
 import {
-  attachTagIdsToRecords,
   getTagForRecord,
   initialActivityRecords,
-  initialActivityTags,
-  loadActivityRecordsFromStorage,
-  loadActivityTagsFromStorage,
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../lib/use-activity-tags-source";
+import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
 type Period = "today" | "week" | "month";
 
@@ -253,27 +251,20 @@ function buildComments(
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>("today");
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
-  const [records, setRecords] = useState<ActivityRecord[]>(
-    initialActivityRecords,
-  );
-
-  useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
-    const storedRecords = loadActivityRecordsFromStorage();
-
-    const timeoutId = window.setTimeout(() => {
-      const loadedTags = storedTags ?? initialActivityTags;
-
-      setTags(loadedTags);
-
-      if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
-      }
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
+  const {
+    tags,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
+  const {
+    records,
+    isReady: isRecordsReady,
+    errorMessage: recordLoadErrorMessage,
+  } = useTimeRecordsSource(tags, isTagsReady, {
+    fallbackRecords: initialActivityRecords,
+    autoSaveLocal: false,
+  });
+  const statusMessage = tagLoadErrorMessage || recordLoadErrorMessage;
 
   const periodRange = useMemo(() => getPeriodRange(period), [period]);
   const periodRecords = useMemo(
@@ -350,6 +341,18 @@ export default function AnalyticsPage() {
         </header>
 
         <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          {!isTagsReady || !isRecordsReady ? (
+            <p className="mb-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              時間記録を読み込み中です。
+            </p>
+          ) : null}
+
+          {statusMessage ? (
+            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {statusMessage}
+            </p>
+          ) : null}
+
           <div className="grid grid-cols-3 gap-2 rounded-md bg-zinc-100 p-1">
             {(Object.keys(periodLabels) as Period[]).map((periodKey) => (
               <button
