@@ -1,6 +1,53 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-let supabaseBrowserClient: SupabaseClient | null = null;
+export type Database = {
+  public: {
+    Tables: {
+      activity_tags: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          color: string;
+          sort_order: number;
+          is_active: boolean;
+          legacy_local_id: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          color: string;
+          sort_order?: number;
+          is_active?: boolean;
+          legacy_local_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          color?: string;
+          sort_order?: number;
+          is_active?: boolean;
+          legacy_local_id?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: Record<never, never>;
+    Functions: Record<never, never>;
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
+  };
+};
+
+let supabaseBrowserClient: SupabaseClient<Database> | null = null;
 
 function getSupabaseBrowserConfig() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,7 +67,7 @@ export function hasSupabaseBrowserConfig() {
   return getSupabaseBrowserConfig() !== null;
 }
 
-export function getSupabaseBrowserClient(): SupabaseClient | null {
+export function getSupabaseBrowserClient(): SupabaseClient<Database> | null {
   const config = getSupabaseBrowserConfig();
 
   if (!config) {
@@ -28,7 +75,7 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   }
 
   if (!supabaseBrowserClient) {
-    supabaseBrowserClient = createClient(
+    supabaseBrowserClient = createClient<Database>(
       config.supabaseUrl,
       config.supabaseAnonKey,
     );

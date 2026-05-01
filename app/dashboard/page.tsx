@@ -16,14 +16,12 @@ import {
   initialActivityTags,
   loadActiveTimerFromStorage,
   loadActivityRecordsFromStorage,
-  loadActivityTagsFromStorage,
   removeActiveTimerFromStorage,
   saveActiveTimerToStorage,
   saveActivityRecordsToStorage,
-  saveActivityTagsToStorage,
   type ActivityRecord,
-  type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 
 type RunningRecord = {
   tagId: string;
@@ -101,7 +99,11 @@ function ActivityTooltip({
 
 export default function DashboardPage() {
   const [selectedTagId, setSelectedTagId] = useState("research");
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
+  const {
+    tags,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
   const [records, setRecords] = useState<ActivityRecord[]>(
     initialActivityRecords,
   );
@@ -113,28 +115,12 @@ export default function DashboardPage() {
   const runningStartedAt = runningRecord?.startedAt.getTime();
 
   useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
     const storedRecords = loadActivityRecordsFromStorage();
     const storedActiveTimer = loadActiveTimerFromStorage();
 
     const timeoutId = window.setTimeout(() => {
-      const loadedTags = storedTags ?? initialActivityTags;
-
-      if (storedTags) {
-        setTags(storedTags);
-        setSelectedTagId((currentTagId) => {
-          const activeTags = getSortedActiveTags(loadedTags);
-
-          if (activeTags.some((tag) => tag.id === currentTagId)) {
-            return currentTagId;
-          }
-
-          return activeTags[0]?.id ?? currentTagId;
-        });
-      }
-
       if (storedRecords) {
-        setRecords(attachTagIdsToRecords(storedRecords, loadedTags));
+        setRecords(attachTagIdsToRecords(storedRecords, initialActivityTags));
       }
 
       if (storedActiveTimer) {
@@ -160,14 +146,6 @@ export default function DashboardPage() {
 
     saveActivityRecordsToStorage(records);
   }, [isStorageReady, records]);
-
-  useEffect(() => {
-    if (!isStorageReady) {
-      return;
-    }
-
-    saveActivityTagsToStorage(tags);
-  }, [isStorageReady, tags]);
 
   useEffect(() => {
     if (runningStartedAt === undefined) {
@@ -205,8 +183,11 @@ export default function DashboardPage() {
   const unrecordedMinutes = Math.max(DAY_MINUTES - recordedMinutes, 0);
   const recordedRatio = Math.min(recordedMinutes / DAY_MINUTES, 1);
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
+  const visibleActiveTags = isTagsReady ? activeTags : [];
   const selectedTag =
-    activeTags.find((tag) => tag.id === selectedTagId) ?? activeTags[0] ?? null;
+    visibleActiveTags.find((tag) => tag.id === selectedTagId) ??
+    visibleActiveTags[0] ??
+    null;
 
   const chartData = useMemo(
     () => {
@@ -414,7 +395,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            {activeTags.map((tag) => {
+            {visibleActiveTags.map((tag) => {
               const isSelected = selectedTag?.id === tag.id;
 
               return (
@@ -438,7 +419,17 @@ export default function DashboardPage() {
               );
             })}
           </div>
-          {activeTags.length === 0 ? (
+          {!isTagsReady ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              活動タグを読み込み中です。
+            </p>
+          ) : null}
+          {tagLoadErrorMessage ? (
+            <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+              {tagLoadErrorMessage}
+            </p>
+          ) : null}
+          {isTagsReady && visibleActiveTags.length === 0 ? (
             <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               活動タグがありません。/tags でタグを追加してください。
             </p>

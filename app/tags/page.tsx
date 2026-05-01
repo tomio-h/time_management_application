@@ -1,15 +1,18 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
+import {
+  addSupabaseActivityTag,
+  deactivateSupabaseActivityTag,
+  updateSupabaseActivityTag,
+} from "../lib/supabase/activity-tags";
 import {
   createActivityTag,
   getSortedActiveTags,
-  initialActivityTags,
-  loadActivityTagsFromStorage,
   MAX_ACTIVITY_TAGS,
-  saveActivityTagsToStorage,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 
 const DEFAULT_TAG_COLOR = "#2563eb";
 const TAG_COLOR_OPTIONS = [
@@ -35,6 +38,12 @@ type ColorPickerProps = {
 
 function normalizeColor(color: string) {
   return color.toUpperCase();
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : "活動タグを保存できませんでした。";
 }
 
 function ColorPicker({ value, onChange, label }: ColorPickerProps) {
@@ -87,44 +96,38 @@ function ColorPicker({ value, onChange, label }: ColorPickerProps) {
 }
 
 export default function TagsPage() {
-  const [tags, setTags] = useState<ActivityTag[]>(initialActivityTags);
-  const [isStorageReady, setIsStorageReady] = useState(false);
+  const {
+    tags,
+    setTags,
+    source: tagsSource,
+    userId,
+    isReady: isTagsReady,
+    errorMessage: tagLoadErrorMessage,
+  } = useActivityTagsSource();
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(DEFAULT_TAG_COLOR);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [editingTagName, setEditingTagName] = useState("");
   const [editingTagColor, setEditingTagColor] = useState(DEFAULT_TAG_COLOR);
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const storedTags = loadActivityTagsFromStorage();
-
-    const timeoutId = window.setTimeout(() => {
-      if (storedTags) {
-        setTags(storedTags);
-      }
-
-      setIsStorageReady(true);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (!isStorageReady) {
-      return;
-    }
-
-    saveActivityTagsToStorage(tags);
-  }, [isStorageReady, tags]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
-  const canAddTag = activeTags.length < MAX_ACTIVITY_TAGS;
+  const visibleActiveTags = isTagsReady ? activeTags : [];
+  const isUsingSupabase = tagsSource === "supabase" && userId !== null;
+  const canAddTag =
+    isTagsReady && visibleActiveTags.length < MAX_ACTIVITY_TAGS;
+  const statusMessage = message || tagLoadErrorMessage;
 
-  const handleAddTag = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddTag = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedName = newTagName.trim();
+
+    if (!isTagsReady) {
+      setMessage("活動タグを読み込み中です。");
+      return;
+    }
 
     if (!trimmedName) {
       setMessage("タグ名を入力してください。");
@@ -137,7 +140,7 @@ export default function TagsPage() {
     }
 
     if (
-      activeTags.some(
+      visibleActiveTags.some(
         (tag) => tag.name.toLowerCase() === trimmedName.toLowerCase(),
       )
     ) {
@@ -147,6 +150,31 @@ export default function TagsPage() {
 
     const nextSortOrder =
       tags.reduce((maxOrder, tag) => Math.max(maxOrder, tag.sortOrder), 0) + 1;
+
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        const addedTag = await addSupabaseActivityTag({
+          userId,
+          name: trimmedName,
+          color: newTagColor,
+          sortOrder: nextSortOrder,
+        });
+
+        setTags((currentTags) => [...currentTags, addedTag]);
+        setNewTagName("");
+        setNewTagColor(DEFAULT_TAG_COLOR);
+        setEditingTagId(null);
+        setMessage("活動タグを追加しました。");
+      } catch (error) {
+        setMessage(getErrorMessage(error));
+      } finally {
+        setIsSaving(false);
+      }
+
+      return;
+    }
 
     setTags((currentTags) => [
       ...currentTags,
@@ -171,8 +199,13 @@ export default function TagsPage() {
     setEditingTagColor(DEFAULT_TAG_COLOR);
   };
 
-  const handleSaveEdit = (tagId: string) => {
+  const handleSaveEdit = async (tagId: string) => {
     const trimmedName = editingTagName.trim();
+
+    if (!isTagsReady) {
+      setMessage("活動タグを読み込み中です。");
+      return;
+    }
 
     if (!trimmedName) {
       setMessage("タグ名を入力してください。");
@@ -180,13 +213,40 @@ export default function TagsPage() {
     }
 
     if (
-      activeTags.some(
+      visibleActiveTags.some(
         (tag) =>
           tag.id !== tagId &&
           tag.name.toLowerCase() === trimmedName.toLowerCase(),
       )
     ) {
       setMessage("同じ名前の活動タグがあります。");
+      return;
+    }
+
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        const updatedTag = await updateSupabaseActivityTag({
+          userId,
+          tagId,
+          name: trimmedName,
+          color: editingTagColor,
+        });
+
+        setTags((currentTags) =>
+          currentTags.map((tag) => (tag.id === tagId ? updatedTag : tag)),
+        );
+        setEditingTagId(null);
+        setEditingTagName("");
+        setEditingTagColor(DEFAULT_TAG_COLOR);
+        setMessage("活動タグを更新しました。");
+      } catch (error) {
+        setMessage(getErrorMessage(error));
+      } finally {
+        setIsSaving(false);
+      }
+
       return;
     }
 
@@ -203,8 +263,38 @@ export default function TagsPage() {
     setMessage("活動タグを更新しました。");
   };
 
-  const handleDeleteTag = (tagToDelete: ActivityTag) => {
+  const handleDeleteTag = async (tagToDelete: ActivityTag) => {
+    if (!isTagsReady) {
+      setMessage("活動タグを読み込み中です。");
+      return;
+    }
+
     if (!window.confirm(`「${tagToDelete.name}」を削除しますか？`)) {
+      return;
+    }
+
+    if (isUsingSupabase) {
+      setIsSaving(true);
+
+      try {
+        await deactivateSupabaseActivityTag(userId, tagToDelete.id);
+        setTags((currentTags) =>
+          currentTags.map((tag) =>
+            tag.id === tagToDelete.id ? { ...tag, isActive: false } : tag,
+          ),
+        );
+
+        if (editingTagId === tagToDelete.id) {
+          handleCancelEdit();
+        }
+
+        setMessage("活動タグを削除しました。");
+      } catch (error) {
+        setMessage(getErrorMessage(error));
+      } finally {
+        setIsSaving(false);
+      }
+
       return;
     }
 
@@ -234,7 +324,7 @@ export default function TagsPage() {
         <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium text-zinc-500">
-              {activeTags.length}/{MAX_ACTIVITY_TAGS}
+              {visibleActiveTags.length}/{MAX_ACTIVITY_TAGS}
             </p>
             <h2 className="text-xl font-semibold text-zinc-950">
               活動タグを追加
@@ -259,16 +349,16 @@ export default function TagsPage() {
             />
             <button
               type="submit"
-              disabled={!canAddTag}
+              disabled={!canAddTag || isSaving}
               className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
             >
-              追加する
+              {isSaving ? "保存中" : "追加する"}
             </button>
           </form>
 
-          {message ? (
+          {statusMessage ? (
             <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-              {message}
+              {statusMessage}
             </p>
           ) : null}
         </section>
@@ -282,7 +372,7 @@ export default function TagsPage() {
           </div>
 
           <div className="mt-4 flex flex-col gap-3">
-            {activeTags.map((tag) => {
+            {visibleActiveTags.map((tag) => {
               const isEditing = editingTagId === tag.id;
 
               return (
@@ -304,7 +394,7 @@ export default function TagsPage() {
                           }
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
-                              handleSaveEdit(tag.id);
+                              void handleSaveEdit(tag.id);
                             }
                           }}
                           className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
@@ -320,14 +410,16 @@ export default function TagsPage() {
                       <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                         <button
                           type="button"
-                          onClick={() => handleSaveEdit(tag.id)}
-                          className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 sm:min-w-28"
+                          onClick={() => void handleSaveEdit(tag.id)}
+                          disabled={isSaving}
+                          className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:min-w-28"
                         >
-                          保存
+                          {isSaving ? "保存中" : "保存"}
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelEdit}
+                          disabled={isSaving}
                           className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:min-w-28"
                         >
                           キャンセル
@@ -346,14 +438,16 @@ export default function TagsPage() {
                       <button
                         type="button"
                         onClick={() => handleStartEdit(tag)}
+                        disabled={isSaving}
                         className="h-11 shrink-0 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
                       >
                         編集
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteTag(tag)}
-                        className="h-11 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+                        onClick={() => void handleDeleteTag(tag)}
+                        disabled={isSaving}
+                        className="h-11 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
                       >
                         削除
                       </button>
@@ -364,7 +458,13 @@ export default function TagsPage() {
             })}
           </div>
 
-          {activeTags.length === 0 ? (
+          {!isTagsReady ? (
+            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+              活動タグを読み込み中です。
+            </p>
+          ) : null}
+
+          {isTagsReady && visibleActiveTags.length === 0 ? (
             <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               活動タグがありません。上のフォームから追加してください。
             </p>
