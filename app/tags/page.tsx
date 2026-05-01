@@ -4,11 +4,19 @@ import { type FormEvent, useMemo, useState } from "react";
 import {
   addSupabaseActivityTag,
   deactivateSupabaseActivityTag,
+  fetchSupabaseActivityTags,
   updateSupabaseActivityTag,
 } from "../lib/supabase/activity-tags";
 import {
+  importLocalTimeWalletData,
+  type LocalDataImportResult,
+} from "../lib/supabase/local-data-import";
+import {
   createActivityTag,
   getSortedActiveTags,
+  loadActiveTimerFromStorage,
+  loadActivityRecordsFromStorage,
+  loadActivityTagsFromStorage,
   MAX_ACTIVITY_TAGS,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
@@ -44,6 +52,30 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
     : "活動タグを保存できませんでした。";
+}
+
+function getImportErrorMessage(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "原因を確認できませんでした。";
+
+  return `インポートに失敗しました。${message}`;
+}
+
+function formatImportResult(result: LocalDataImportResult) {
+  const importedActiveTimerText =
+    result.importedActiveTimer > 0
+      ? `、記録中タイマー${result.importedActiveTimer}件`
+      : "";
+  const tagStatusText =
+    result.skippedTags > 0 || result.tagErrors > 0
+      ? `、タグスキップ${result.skippedTags}件、タグエラー${result.tagErrors}件`
+      : "";
+  const activeTimerStatusText =
+    result.skippedActiveTimer > 0 || result.activeTimerErrors > 0
+      ? `、記録中タイマースキップ${result.skippedActiveTimer}件、記録中タイマーエラー${result.activeTimerErrors}件`
+      : "";
+
+  return `インポート完了: タグ新規追加${result.importedTags}件、既存タグに紐づけ${result.matchedTags}件、記録新規追加${result.importedRecords}件、記録スキップ${result.skippedRecords}件、記録エラー${result.recordErrors}件${importedActiveTimerText}${tagStatusText}${activeTimerStatusText}。`;
 }
 
 function ColorPicker({ value, onChange, label }: ColorPickerProps) {
@@ -111,10 +143,12 @@ export default function TagsPage() {
   const [editingTagColor, setEditingTagColor] = useState(DEFAULT_TAG_COLOR);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const activeTags = useMemo(() => getSortedActiveTags(tags), [tags]);
   const visibleActiveTags = isTagsReady ? activeTags : [];
   const isUsingSupabase = tagsSource === "supabase" && userId !== null;
+  const isBusy = isSaving || isImporting;
   const canAddTag =
     isTagsReady && visibleActiveTags.length < MAX_ACTIVITY_TAGS;
   const statusMessage = message || tagLoadErrorMessage;
@@ -309,6 +343,48 @@ export default function TagsPage() {
     setMessage("活動タグを削除しました。");
   };
 
+  const handleImportLocalData = async () => {
+    if (!isUsingSupabase) {
+      return;
+    }
+
+    const localTags = loadActivityTagsFromStorage() ?? [];
+    const localRecords = loadActivityRecordsFromStorage() ?? [];
+    const localActiveTimer = loadActiveTimerFromStorage();
+
+    if (
+      localTags.length === 0 &&
+      localRecords.length === 0 &&
+      !localActiveTimer
+    ) {
+      setMessage("この端末に取り込めるlocalStorageデータがありません。");
+      return;
+    }
+
+    setIsImporting(true);
+    setMessage("");
+
+    try {
+      const result = await importLocalTimeWalletData({
+        userId,
+        localTags,
+        localRecords,
+        localActiveTimer,
+      });
+      const nextTags = await fetchSupabaseActivityTags(userId);
+
+      setTags(nextTags);
+      setEditingTagId(null);
+      setEditingTagName("");
+      setEditingTagColor(DEFAULT_TAG_COLOR);
+      setMessage(formatImportResult(result));
+    } catch (error) {
+      setMessage(getImportErrorMessage(error));
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
@@ -320,6 +396,29 @@ export default function TagsPage() {
             </h1>
           </div>
         </header>
+
+        {isUsingSupabase ? (
+          <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-500">
+                  localStorage
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+                  この端末のデータを取り込む
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleImportLocalData()}
+                disabled={isBusy}
+                className="h-12 w-full rounded-md bg-emerald-500 px-4 text-base font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:w-auto"
+              >
+                {isImporting ? "取り込み中" : "取り込む"}
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-1">
@@ -349,10 +448,10 @@ export default function TagsPage() {
             />
             <button
               type="submit"
-              disabled={!canAddTag || isSaving}
+              disabled={!canAddTag || isBusy}
               className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
             >
-              {isSaving ? "保存中" : "追加する"}
+              {isBusy ? "保存中" : "追加する"}
             </button>
           </form>
 
@@ -411,15 +510,15 @@ export default function TagsPage() {
                         <button
                           type="button"
                           onClick={() => void handleSaveEdit(tag.id)}
-                          disabled={isSaving}
+                          disabled={isBusy}
                           className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:min-w-28"
                         >
-                          {isSaving ? "保存中" : "保存"}
+                          {isBusy ? "保存中" : "保存"}
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelEdit}
-                          disabled={isSaving}
+                          disabled={isBusy}
                           className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:min-w-28"
                         >
                           キャンセル
@@ -438,7 +537,7 @@ export default function TagsPage() {
                       <button
                         type="button"
                         onClick={() => handleStartEdit(tag)}
-                        disabled={isSaving}
+                        disabled={isBusy}
                         className="h-11 shrink-0 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
                       >
                         編集
@@ -446,7 +545,7 @@ export default function TagsPage() {
                       <button
                         type="button"
                         onClick={() => void handleDeleteTag(tag)}
-                        disabled={isSaving}
+                        disabled={isBusy}
                         className="h-11 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
                       >
                         削除
