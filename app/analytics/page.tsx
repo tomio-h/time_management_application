@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -299,20 +298,6 @@ export default function AnalyticsPage() {
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               分析
             </h1>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              href="/dashboard"
-              className="rounded-md bg-zinc-950 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800"
-            >
-              ダッシュボードへ
-            </Link>
-            <Link
-              href="/calendar"
-              className="rounded-md bg-white px-3 py-2 text-center text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
-            >
-              カレンダーへ
-            </Link>
           </div>
         </header>
 

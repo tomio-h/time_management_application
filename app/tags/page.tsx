@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createActivityTag,
@@ -214,12 +213,6 @@ export default function TagsPage() {
               活動タグ管理
             </h1>
           </div>
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-zinc-700 shadow-sm ring-1 ring-zinc-200 transition-colors hover:bg-zinc-50"
-          >
-            ダッシュボードへ
-          </Link>
         </header>
 
         <section className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
