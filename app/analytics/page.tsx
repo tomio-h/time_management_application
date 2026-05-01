@@ -38,6 +38,8 @@ type DaySummary = {
   date: string;
   label: string;
   minutes: number;
+  topTagName: string | null;
+  topTagColor: string;
 };
 
 const DAY_MINUTES = 24 * 60;
@@ -45,6 +47,12 @@ const periodLabels: Record<Period, string> = {
   today: "今日",
   week: "週間",
   month: "月間",
+};
+const unrecordedDescriptions: Record<Period, string> = {
+  today: "今日1日の24時間から、記録済み時間を差し引いた目安です。",
+  week: "今週7日分の時間から計算しています。睡眠や未入力の時間も含まれます。",
+  month:
+    "今月の日数分の時間から計算しています。月間では大きな数字になりやすいです。",
 };
 
 function padNumber(value: number) {
@@ -75,6 +83,12 @@ function addDays(date: Date, days: number) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
+function formatDateLabel(dateValue: string) {
+  const date = parseDateValue(dateValue);
+
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 function formatMinutes(minutes: number) {
   const hours = Math.floor(minutes / 60);
   const restMinutes = minutes % 60;
@@ -88,6 +102,30 @@ function formatMinutes(minutes: number) {
   }
 
   return `${hours}h${restMinutes}m`;
+}
+
+function formatDiffMinutes(minutes: number) {
+  if (minutes > 0) {
+    return `+${formatMinutes(minutes)}`;
+  }
+
+  if (minutes < 0) {
+    return `-${formatMinutes(Math.abs(minutes))}`;
+  }
+
+  return "±0m";
+}
+
+function getDiffClassName(minutes: number) {
+  if (minutes > 0) {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (minutes < 0) {
+    return "bg-rose-50 text-rose-700";
+  }
+
+  return "bg-zinc-100 text-zinc-500";
 }
 
 function getPeriodRange(period: Period) {
@@ -262,14 +300,21 @@ export default function AnalyticsPage() {
   const daySummaries = useMemo(() => {
     const days = getDaysInRange(periodRange.start, periodRange.totalDays);
 
-    return days.map<DaySummary>((day) => ({
-      date: day.dateValue,
-      label: period === "month" ? day.date.getDate().toString() : day.label,
-      minutes: periodRecords
-        .filter((record) => getRecordDate(record) === day.dateValue)
-        .reduce((total, record) => total + record.minutes, 0),
-    }));
-  }, [period, periodRange.start, periodRange.totalDays, periodRecords]);
+    return days.map<DaySummary>((day) => {
+      const dayRecords = periodRecords.filter(
+        (record) => getRecordDate(record) === day.dateValue,
+      );
+      const topTag = buildTagSummaries(dayRecords, tags)[0];
+
+      return {
+        date: day.dateValue,
+        label: period === "month" ? day.date.getDate().toString() : day.label,
+        minutes: dayRecords.reduce((total, record) => total + record.minutes, 0),
+        topTagName: topTag?.name ?? null,
+        topTagColor: topTag?.color ?? "#71717a",
+      };
+    });
+  }, [period, periodRange.start, periodRange.totalDays, periodRecords, tags]);
 
   const recordedMinutes = periodRecords.reduce(
     (total, record) => total + record.minutes,
@@ -286,6 +331,15 @@ export default function AnalyticsPage() {
     recordedMinutes,
     availableMinutes,
   );
+  const tagBreakdown = tagSummaries.map((tag) => ({
+    ...tag,
+    ratio:
+      recordedMinutes > 0
+        ? Math.round((tag.minutes / recordedMinutes) * 100)
+        : 0,
+  }));
+  const topTagSummaries = tagBreakdown.slice(0, 3);
+  const unrecordedDescription = unrecordedDescriptions[period];
   const barChartWidth =
     period === "month" ? Math.max(720, daySummaries.length * 28) : 420;
 
@@ -332,6 +386,12 @@ export default function AnalyticsPage() {
             <p className="mt-2 text-3xl font-semibold text-zinc-950">
               {formatMinutes(unrecordedMinutes)}
             </p>
+            <p className="mt-1 text-xs font-medium text-zinc-400">
+              対象時間: {formatMinutes(availableMinutes)}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              {unrecordedDescription}
+            </p>
           </article>
           <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
             <p className="text-sm font-medium text-zinc-500">記録済み割合</p>
@@ -344,36 +404,81 @@ export default function AnalyticsPage() {
         <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
           <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
             <div>
-              <p className="text-sm font-medium text-zinc-500">タグ別合計時間</p>
+              <p className="text-sm font-medium text-zinc-500">タグ別内訳</p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">
-                円グラフ
+                タグ別時間配分
               </h2>
             </div>
             <div className="mt-4 flex h-[18rem] min-h-[18rem] w-full min-w-0 items-center justify-center overflow-hidden">
-              <PieChart width={260} height={260}>
-                <Pie
-                  data={tagSummaries}
-                  dataKey="minutes"
-                  nameKey="name"
-                  innerRadius={70}
-                  outerRadius={106}
-                  paddingAngle={3}
-                  strokeWidth={0}
-                >
-                  {tagSummaries.map((entry) => (
-                    <Cell key={entry.id} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={ChartTooltip} />
-              </PieChart>
+              {tagBreakdown.length === 0 ? (
+                <p className="text-sm text-zinc-500">この期間の記録はありません</p>
+              ) : (
+                <PieChart width={260} height={260}>
+                  <Pie
+                    data={tagBreakdown}
+                    dataKey="minutes"
+                    nameKey="name"
+                    innerRadius={70}
+                    outerRadius={106}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {tagBreakdown.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={ChartTooltip} />
+                </PieChart>
+              )}
             </div>
+            {tagBreakdown.length > 0 ? (
+              <div className="mt-4 divide-y divide-zinc-100">
+                {tagBreakdown.map((tag) => (
+                  <div
+                    key={tag.id}
+                    className="grid grid-cols-[1fr_auto] items-center gap-3 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <p className="truncate text-sm font-semibold text-zinc-950">
+                          {tag.name}
+                        </p>
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${tag.ratio}%`,
+                            backgroundColor: tag.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-zinc-950">
+                        {formatMinutes(tag.minutes)}
+                      </p>
+                      <p className="text-xs font-medium text-zinc-500">
+                        {tag.ratio}%
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </article>
 
           <article className="rounded-lg bg-white p-5 shadow-sm ring-1 ring-zinc-200">
             <div>
-              <p className="text-sm font-medium text-zinc-500">日別合計時間</p>
+              <p className="text-sm font-medium text-zinc-500">
+                {periodLabels[period]}の推移
+              </p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">
-                棒グラフ
+                日別記録時間
               </h2>
             </div>
             <div className="mt-4 overflow-x-auto">
@@ -399,6 +504,73 @@ export default function AnalyticsPage() {
                 />
               </BarChart>
             </div>
+            <div className="mt-5 border-t border-zinc-100 pt-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-500">
+                  日別記録一覧
+                </p>
+                <p className="mt-1 text-sm leading-6 text-zinc-600">
+                  各日の合計記録時間と、最も多く記録された活動タグを確認できます。
+                </p>
+              </div>
+              <div className="mt-3 flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
+                {daySummaries.map((day, index) => {
+                  const diffMinutes =
+                    index === 0
+                      ? null
+                      : day.minutes - daySummaries[index - 1].minutes;
+                  const hasRecords = day.minutes > 0;
+
+                  return (
+                    <div
+                      key={day.date}
+                      className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-zinc-950">
+                          {formatDateLabel(day.date)}
+                        </p>
+                        <div className="mt-1 flex min-w-0 items-center gap-2">
+                          {hasRecords && day.topTagName ? (
+                            <>
+                              <span
+                                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: day.topTagColor }}
+                              />
+                              <span className="truncate text-sm font-medium text-zinc-600">
+                                {day.topTagName}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-medium text-zinc-400">
+                              未記録
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-zinc-950">
+                          {formatMinutes(day.minutes)}
+                        </p>
+                        {diffMinutes === null ? (
+                          <p className="mt-1 text-xs font-medium text-zinc-400">
+                            比較なし
+                          </p>
+                        ) : (
+                          <p
+                            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${getDiffClassName(
+                              diffMinutes,
+                            )}`}
+                          >
+                            前日比 {formatDiffMinutes(diffMinutes)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </article>
         </section>
 
@@ -407,16 +579,16 @@ export default function AnalyticsPage() {
             <div>
               <p className="text-sm font-medium text-zinc-500">タグ別ランキング</p>
               <h2 className="mt-1 text-xl font-semibold text-zinc-950">
-                使った時間が多い順
+                上位タグ
               </h2>
             </div>
-            {tagSummaries.length === 0 ? (
+            {topTagSummaries.length === 0 ? (
               <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
                 この期間の記録はありません
               </p>
             ) : (
               <div className="mt-4 flex flex-col gap-3">
-                {tagSummaries.map((tag, index) => (
+                {topTagSummaries.map((tag, index) => (
                   <div
                     key={tag.id}
                     className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3"
@@ -438,6 +610,9 @@ export default function AnalyticsPage() {
                     </span>
                   </div>
                 ))}
+                <p className="text-sm leading-6 text-zinc-500">
+                  詳しい割合と色別の内訳は、上の「タグ別時間配分」で確認できます。
+                </p>
               </div>
             )}
           </article>
