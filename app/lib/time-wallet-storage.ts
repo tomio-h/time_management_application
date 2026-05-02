@@ -28,84 +28,9 @@ export const TAGS_STORAGE_KEY = "time-wallet:activity-tags";
 export const RECORDS_STORAGE_KEY = "time-wallet:dashboard-records";
 export const ACTIVE_TIMER_STORAGE_KEY = "time-wallet:active-timer";
 
-export const initialActivityTags: ActivityTag[] = [
-  { id: "class", name: "授業", color: "#2563eb", sortOrder: 1, isActive: true },
-  {
-    id: "assignment",
-    name: "課題",
-    color: "#0f766e",
-    sortOrder: 2,
-    isActive: true,
-  },
-  {
-    id: "research",
-    name: "研究",
-    color: "#7c3aed",
-    sortOrder: 3,
-    isActive: true,
-  },
-  {
-    id: "part-time",
-    name: "バイト",
-    color: "#c2410c",
-    sortOrder: 4,
-    isActive: true,
-  },
-  { id: "sleep", name: "睡眠", color: "#4f46e5", sortOrder: 5, isActive: true },
-  {
-    id: "smartphone",
-    name: "スマホ",
-    color: "#db2777",
-    sortOrder: 6,
-    isActive: true,
-  },
-  { id: "hobby", name: "趣味", color: "#16a34a", sortOrder: 7, isActive: true },
-  { id: "break", name: "休憩", color: "#ca8a04", sortOrder: 8, isActive: true },
-];
+export const initialActivityTags: ActivityTag[] = [];
 
-export const initialActivityRecords: ActivityRecord[] = [
-  { id: 1, tagId: "class", start: "09:00", end: "10:30", tag: "授業", minutes: 90 },
-  {
-    id: 2,
-    tagId: "assignment",
-    start: "10:45",
-    end: "12:00",
-    tag: "課題",
-    minutes: 75,
-  },
-  {
-    id: 3,
-    tagId: "research",
-    start: "13:00",
-    end: "15:00",
-    tag: "研究",
-    minutes: 120,
-  },
-  {
-    id: 4,
-    tagId: "part-time",
-    start: "15:20",
-    end: "17:20",
-    tag: "バイト",
-    minutes: 120,
-  },
-  {
-    id: 5,
-    tagId: "break",
-    start: "18:00",
-    end: "18:40",
-    tag: "休憩",
-    minutes: 40,
-  },
-  {
-    id: 6,
-    tagId: "hobby",
-    start: "21:10",
-    end: "22:05",
-    tag: "趣味",
-    minutes: 55,
-  },
-];
+export const initialActivityRecords: ActivityRecord[] = [];
 
 function isRecordObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

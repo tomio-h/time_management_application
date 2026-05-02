@@ -18,6 +18,7 @@ import {
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { EmptyState } from "../components/empty-state";
 import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
@@ -329,18 +330,20 @@ export default function AnalyticsPage() {
     period === "month" ? Math.max(640, daySummaries.length * 24) : 340;
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-50 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Time Wallet
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               分析
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           {!isTagsReady || !isRecordsReady ? (
             <p className="mb-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               時間記録を読み込み中です。
@@ -353,13 +356,13 @@ export default function AnalyticsPage() {
             </p>
           ) : null}
 
-          <div className="grid grid-cols-3 gap-2 rounded-md bg-zinc-100 p-1">
+          <div className="grid grid-cols-3 gap-1 rounded-md bg-zinc-100 p-1 sm:gap-2">
             {(Object.keys(periodLabels) as Period[]).map((periodKey) => (
               <button
                 key={periodKey}
                 type="button"
                 onClick={() => setPeriod(periodKey)}
-                className={`h-12 rounded-md text-base font-semibold transition-colors ${
+                className={`h-10 rounded-md text-sm font-semibold transition-colors sm:h-12 sm:text-base ${
                   period === periodKey
                     ? "bg-zinc-950 text-white"
                     : "text-zinc-600 hover:bg-white"
@@ -371,52 +374,65 @@ export default function AnalyticsPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-            <p className="text-sm font-medium text-zinc-500">合計記録時間</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
+        <section className="grid gap-2 md:grid-cols-3 md:gap-4">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+              合計記録時間
+            </p>
+            <p className="mt-1 text-xl font-semibold text-zinc-950 sm:mt-2 sm:text-3xl">
               {formatMinutes(recordedMinutes)}
             </p>
           </article>
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-            <p className="text-sm font-medium text-zinc-500">未記録時間</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+              未記録時間
+            </p>
+            <p className="mt-1 text-xl font-semibold text-zinc-950 sm:mt-2 sm:text-3xl">
               {formatMinutes(unrecordedMinutes)}
             </p>
             <p className="mt-1 text-xs font-medium text-zinc-400">
               対象時間: {formatMinutes(availableMinutes)}
             </p>
-            <p className="mt-2 text-sm leading-6 text-zinc-500">
+            <p className="mt-1 text-xs leading-5 text-zinc-500 sm:mt-2 sm:text-sm sm:leading-6">
               {unrecordedDescription}
             </p>
           </article>
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-            <p className="text-sm font-medium text-zinc-500">記録済み割合</p>
-            <p className="mt-2 text-2xl font-semibold text-zinc-950 sm:text-3xl">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+              記録済み割合
+            </p>
+            <p className="mt-1 text-xl font-semibold text-zinc-950 sm:mt-2 sm:text-3xl">
               {recordedRatio}%
             </p>
           </article>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr] lg:gap-4">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
-              <p className="text-sm font-medium text-zinc-500">タグ別内訳</p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                タグ別内訳
+              </p>
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 タグ別時間配分
               </h2>
             </div>
-            <div className="mt-4 flex h-[16rem] min-h-[16rem] w-full min-w-0 items-center justify-center overflow-hidden sm:h-[18rem] sm:min-h-[18rem]">
+            <div className="mt-3 flex h-[13.5rem] min-h-[13.5rem] w-full min-w-0 items-center justify-center overflow-hidden sm:mt-4 sm:h-[18rem] sm:min-h-[18rem]">
               {tagBreakdown.length === 0 ? (
-                <p className="text-sm text-zinc-500">この期間の記録はありません</p>
+                <EmptyState
+                  title="この期間の記録はありません"
+                  description="記録を追加すると、タグ別の時間配分がここに表示されます。"
+                  actionHref="/records/new"
+                  actionLabel="記録を追加する"
+                />
               ) : (
-                <PieChart width={240} height={240}>
+                <PieChart width={220} height={220}>
                   <Pie
                     data={tagBreakdown}
                     dataKey="minutes"
                     nameKey="name"
-                    innerRadius={64}
-                    outerRadius={98}
+                    innerRadius={58}
+                    outerRadius={88}
                     paddingAngle={3}
                     strokeWidth={0}
                   >
@@ -469,16 +485,16 @@ export default function AnalyticsPage() {
             ) : null}
           </article>
 
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
-              <p className="text-sm font-medium text-zinc-500">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
                 {periodLabels[period]}の推移
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 日別記録時間
               </h2>
             </div>
-            <div className="mt-4 w-full overflow-x-auto">
+            <div className="mt-3 w-full overflow-x-auto sm:mt-4">
               <BarChart
                 width={barChartWidth}
                 height={260}
@@ -501,16 +517,16 @@ export default function AnalyticsPage() {
                 />
               </BarChart>
             </div>
-            <div className="mt-5 border-t border-zinc-100 pt-4">
+            <div className="mt-3 border-t border-zinc-100 pt-3 sm:mt-5 sm:pt-4">
               <div>
-                <p className="text-sm font-medium text-zinc-500">
+                <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
                   日別記録一覧
                 </p>
-                <p className="mt-1 text-sm leading-6 text-zinc-600">
+                <p className="mt-1 text-xs leading-5 text-zinc-600 sm:text-sm sm:leading-6">
                   各日の合計記録時間と、最も多く記録された活動タグを確認できます。
                 </p>
               </div>
-              <div className="mt-3 flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
+              <div className="mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto pr-1 sm:mt-3 sm:max-h-[28rem]">
                 {daySummaries.map((day, index) => {
                   const diffMinutes =
                     index === 0
@@ -521,7 +537,7 @@ export default function AnalyticsPage() {
                   return (
                     <div
                       key={day.date}
-                      className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3"
+                      className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 sm:gap-3 sm:py-3"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-zinc-950">
@@ -571,24 +587,29 @@ export default function AnalyticsPage() {
           </article>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="grid gap-3 lg:grid-cols-[1fr_1fr] lg:gap-4">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
-              <p className="text-sm font-medium text-zinc-500">タグ別ランキング</p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                タグ別ランキング
+              </p>
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 上位タグ
               </h2>
             </div>
             {topTagSummaries.length === 0 ? (
-              <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
-                この期間の記録はありません
-              </p>
+              <div className="mt-3 sm:mt-4">
+                <EmptyState
+                  title="ランキングはまだありません"
+                  description="記録が増えると、よく使っているタグがランキングで見えるようになります。"
+                />
+              </div>
             ) : (
-              <div className="mt-4 flex flex-col gap-3">
+              <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
                 {topTagSummaries.map((tag, index) => (
                   <div
                     key={tag.id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-2.5 sm:gap-3 sm:p-3"
                   >
                     <span className="text-sm font-semibold text-zinc-500">
                       {index + 1}
@@ -614,14 +635,16 @@ export default function AnalyticsPage() {
             )}
           </article>
 
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
-              <p className="text-sm font-medium text-zinc-500">振り返り</p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                振り返り
+              </p>
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 コメント
               </h2>
             </div>
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
               {comments.map((comment) => (
                 <p
                   key={comment}

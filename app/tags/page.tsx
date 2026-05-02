@@ -7,6 +7,7 @@ import {
   fetchSupabaseActivityTags,
   updateSupabaseActivityTag,
 } from "../lib/supabase/activity-tags";
+import { EmptyState } from "../components/empty-state";
 import {
   importLocalTimeWalletData,
   type LocalDataImportResult,
@@ -82,21 +83,23 @@ function ColorPicker({ value, onChange, label }: ColorPickerProps) {
   const selectedColor = normalizeColor(value);
 
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-2.5 sm:p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-zinc-700">{label}</p>
+        <p className="text-xs font-semibold text-zinc-700 sm:text-sm">
+          {label}
+        </p>
         <label className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
           詳細
           <input
             type="color"
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="h-11 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+            className="h-9 w-10 cursor-pointer rounded border-0 bg-transparent p-0 sm:h-11 sm:w-12"
           />
         </label>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-2 sm:mt-3">
         {TAG_COLOR_OPTIONS.map((color) => {
           const isSelected = selectedColor === color.value;
 
@@ -107,7 +110,7 @@ function ColorPicker({ value, onChange, label }: ColorPickerProps) {
               aria-label={color.label}
               aria-pressed={isSelected}
               onClick={() => onChange(color.value)}
-              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors sm:h-11 sm:w-11 ${
                 isSelected
                   ? "border-zinc-950 ring-2 ring-zinc-950 ring-offset-2"
                   : "border-white ring-1 ring-zinc-200"
@@ -386,28 +389,30 @@ export default function TagsPage() {
   };
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-50 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Time Wallet
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               活動タグ管理
             </h1>
           </div>
         </header>
 
         {isUsingSupabase ? (
-          <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-500">
+                <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
                   localStorage
                 </p>
-                <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+                <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                   この端末のデータを取り込む
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+                <p className="mt-1.5 max-w-2xl text-xs leading-5 text-zinc-600 sm:text-sm sm:leading-6">
                   未ログイン中にこの端末へ保存したタグ・記録を、現在のアカウントへ取り込みます。localStorageのデータは削除しません。
                 </p>
               </div>
@@ -415,7 +420,7 @@ export default function TagsPage() {
                 type="button"
                 onClick={() => void handleImportLocalData()}
                 disabled={isBusy}
-                className="h-12 w-full rounded-md bg-emerald-500 px-4 text-base font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:w-auto"
+                className="h-10 w-full rounded-md bg-emerald-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-12 sm:w-auto sm:text-base"
               >
                 {isImporting ? "取り込み中" : "取り込む"}
               </button>
@@ -423,26 +428,26 @@ export default function TagsPage() {
           </section>
         ) : null}
 
-        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium text-zinc-500">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
               {visibleActiveTags.length}/{MAX_ACTIVITY_TAGS}
             </p>
-            <h2 className="text-xl font-semibold text-zinc-950">
+            <h2 className="text-lg font-semibold text-zinc-950 sm:text-xl">
               活動タグを追加
             </h2>
           </div>
 
           <form
             onSubmit={handleAddTag}
-            className="mt-4 grid gap-3 lg:grid-cols-[1fr_1.4fr_auto]"
+            className="mt-3 grid gap-2 sm:gap-3 lg:grid-cols-[1fr_1.4fr_auto]"
           >
             <input
               type="text"
               value={newTagName}
               onChange={(event) => setNewTagName(event.target.value)}
               placeholder="タグ名"
-              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white sm:h-12"
             />
             <ColorPicker
               value={newTagColor}
@@ -452,7 +457,7 @@ export default function TagsPage() {
             <button
               type="submit"
               disabled={!canAddTag || isBusy}
-              className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 lg:self-start"
+              className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500 sm:h-12 sm:text-base lg:self-start"
             >
               {isBusy ? "保存中" : "追加する"}
             </button>
@@ -465,27 +470,29 @@ export default function TagsPage() {
           ) : null}
         </section>
 
-        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div>
-            <p className="text-sm font-medium text-zinc-500">現在の活動タグ</p>
-            <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+              現在の活動タグ
+            </p>
+            <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
               活動タグ一覧
             </h2>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
             {visibleActiveTags.map((tag) => {
               const isEditing = editingTagId === tag.id;
 
               return (
                 <article
                   key={tag.id}
-                  className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+                  className="rounded-md border border-zinc-200 bg-zinc-50 p-2.5 sm:p-3"
                 >
                   {isEditing ? (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5 sm:gap-3">
                       <label className="flex flex-col gap-2">
-                        <span className="text-sm font-semibold text-zinc-700">
+                        <span className="text-xs font-semibold text-zinc-700 sm:text-sm">
                           タグ名
                         </span>
                         <input
@@ -499,7 +506,7 @@ export default function TagsPage() {
                               void handleSaveEdit(tag.id);
                             }
                           }}
-                          className="h-12 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400"
+                          className="h-11 rounded-md border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-950 outline-none transition-colors focus:border-zinc-400 sm:h-12"
                         />
                       </label>
 
@@ -514,7 +521,7 @@ export default function TagsPage() {
                           type="button"
                           onClick={() => void handleSaveEdit(tag.id)}
                           disabled={isBusy}
-                          className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:min-w-28"
+                          className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:h-12 sm:min-w-28 sm:text-base"
                         >
                           {isBusy ? "保存中" : "保存"}
                         </button>
@@ -522,26 +529,26 @@ export default function TagsPage() {
                           type="button"
                           onClick={handleCancelEdit}
                           disabled={isBusy}
-                          className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:min-w-28"
+                          className="h-10 rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:h-12 sm:min-w-28 sm:text-base"
                         >
                           キャンセル
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3">
+                    <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 sm:gap-3">
                       <span
-                        className="h-4 w-4 shrink-0 rounded-full"
+                        className="h-3.5 w-3.5 shrink-0 rounded-full sm:h-4 sm:w-4"
                         style={{ backgroundColor: tag.color }}
                       />
-                      <p className="min-w-0 flex-1 truncate text-base font-semibold text-zinc-950">
+                      <p className="min-w-0 truncate text-sm font-semibold text-zinc-950 sm:text-base">
                         {tag.name}
                       </p>
                       <button
                         type="button"
                         onClick={() => handleStartEdit(tag)}
                         disabled={isBusy}
-                        className="h-11 shrink-0 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
+                        className="h-9 shrink-0 rounded-md border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 sm:h-11 sm:px-3 sm:text-sm"
                       >
                         編集
                       </button>
@@ -549,7 +556,7 @@ export default function TagsPage() {
                         type="button"
                         onClick={() => void handleDeleteTag(tag)}
                         disabled={isBusy}
-                        className="h-11 shrink-0 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400"
+                        className="h-9 shrink-0 rounded-md border border-red-200 bg-white px-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400 sm:h-11 sm:px-3 sm:text-sm"
                       >
                         削除
                       </button>
@@ -567,9 +574,12 @@ export default function TagsPage() {
           ) : null}
 
           {isTagsReady && visibleActiveTags.length === 0 ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
-              活動タグがありません。上のフォームから追加してください。
-            </p>
+            <div className="mt-3">
+              <EmptyState
+                title="まだ活動タグがありません"
+                description="勉強、仕事、睡眠、趣味など、まずはよく使う活動を3つほど登録してみましょう。"
+              />
+            </div>
           ) : null}
         </section>
       </div>

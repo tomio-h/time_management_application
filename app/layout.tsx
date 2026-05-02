@@ -64,12 +64,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full overflow-x-hidden flex flex-col bg-zinc-100 text-base text-zinc-950">
+      <body className="flex min-h-full flex-col overflow-x-hidden bg-zinc-100 text-base text-zinc-950">
         <AppNavigation />
-        <div className="flex w-full flex-1 flex-col pb-48 sm:pb-0">{children}</div>
+        <div className="flex w-full flex-1 flex-col pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-0">
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -24,6 +24,7 @@ import {
 } from "../lib/time-wallet-storage";
 import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 import { useTimeRecordsSource } from "../lib/use-time-records-source";
+import { EmptyState, GettingStartedCard } from "../components/empty-state";
 
 type RunningRecord = {
   tagId: string | null;
@@ -118,7 +119,7 @@ function ActivityTooltip({
 }
 
 export default function DashboardPage() {
-  const [selectedTagId, setSelectedTagId] = useState("research");
+  const [selectedTagId, setSelectedTagId] = useState("");
   const {
     tags,
     isReady: isTagsReady,
@@ -453,52 +454,64 @@ export default function DashboardPage() {
     ? runningTag?.name ?? runningRecord.tagNameSnapshot
     : selectedTag?.name ?? "タグなし";
   const currentTimer = formatTimer(runningRecord?.elapsedSeconds ?? 0);
+  const showGettingStarted =
+    isDataReady && visibleActiveTags.length === 0 && records.length === 0;
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-50 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-500">時間家計簿</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              時間家計簿
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               Time Wallet
             </h1>
           </div>
-          <p className="rounded-md bg-white px-3 py-2 text-sm font-medium text-zinc-600 shadow-sm ring-1 ring-zinc-200">
+          <p className="rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 shadow-sm ring-1 ring-zinc-200 sm:text-sm">
             {todayLabel}
           </p>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-[1.05fr_0.95fr]">
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-            <div className="flex items-center justify-between gap-4">
+        {showGettingStarted ? <GettingStartedCard /> : null}
+
+        <section className="grid gap-3 md:grid-cols-[1.05fr_0.95fr] md:gap-4">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-zinc-500">今日の記録</p>
-                <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+                <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                  今日の記録
+                </p>
+                <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                   記録済み時間
                 </h2>
               </div>
-              <span className="rounded-md bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+              <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 sm:text-sm">
                 {Math.round(recordedRatio * 100)}%
               </span>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-sm text-zinc-500">記録済み</p>
-                <p className="mt-2 text-2xl font-semibold text-zinc-950">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3">
+              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
+                <p className="text-xs font-medium text-zinc-500 sm:text-sm">
+                  記録済み
+                </p>
+                <p className="mt-1 text-xl font-semibold text-zinc-950 sm:mt-2 sm:text-2xl">
                   {formatMinutes(recordedMinutes)}
                 </p>
               </div>
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-sm text-zinc-500">未記録</p>
-                <p className="mt-2 text-2xl font-semibold text-zinc-950">
+              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
+                <p className="text-xs font-medium text-zinc-500 sm:text-sm">
+                  未記録
+                </p>
+                <p className="mt-1 text-xl font-semibold text-zinc-950 sm:mt-2 sm:text-2xl">
                   {formatMinutes(unrecordedMinutes)}
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 h-3 overflow-hidden rounded-full bg-zinc-200">
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-zinc-200 sm:mt-5 sm:h-3">
               <div
                 className="h-full rounded-full bg-emerald-500"
                 style={{
@@ -508,13 +521,13 @@ export default function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-lg bg-zinc-950 p-4 text-white shadow-sm sm:p-5">
-            <div className="flex items-center justify-between gap-4">
+          <article className="rounded-lg bg-zinc-950 p-3 text-white shadow-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-zinc-400">
+                <p className="text-xs font-semibold text-zinc-400 sm:text-sm">
                   {runningRecord ? "現在記録中" : "記録待機中"}
                 </p>
-                <h2 className="mt-1 text-2xl font-semibold">
+                <h2 className="mt-0.5 text-xl font-semibold sm:text-2xl">
                   {currentTag}
                 </h2>
               </div>
@@ -527,7 +540,7 @@ export default function DashboardPage() {
               />
             </div>
 
-            <p className="mt-6 font-mono text-4xl font-semibold tracking-normal">
+            <p className="mt-4 font-mono text-3xl font-semibold tracking-normal sm:mt-6 sm:text-4xl">
               {currentTimer}
             </p>
 
@@ -536,7 +549,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => void handleStop()}
                 disabled={isSavingRecord || !isDataReady}
-                className="mt-6 h-14 w-full rounded-md bg-white px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                className="mt-4 h-11 w-full rounded-md bg-white px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 sm:mt-6 sm:h-14 sm:text-base"
               >
                 {isSavingRecord ? "保存中" : "停止する"}
               </button>
@@ -545,7 +558,7 @@ export default function DashboardPage() {
                 type="button"
                 onClick={() => void handleStart()}
                 disabled={!selectedTag || !isDataReady || isSavingRecord}
-                className="mt-6 h-14 w-full rounded-md bg-emerald-400 px-4 text-base font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+                className="mt-4 h-11 w-full rounded-md bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 sm:mt-6 sm:h-14 sm:text-base"
               >
                 {isSavingRecord ? "保存中" : "開始する"}
               </button>
@@ -553,32 +566,34 @@ export default function DashboardPage() {
           </article>
         </section>
 
-        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-zinc-500">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
                 タグを選んで開始
               </p>
-              <h2 className="text-xl font-semibold text-zinc-950">活動タグ</h2>
+              <h2 className="text-lg font-semibold text-zinc-950 sm:text-xl">
+                活動タグ
+              </h2>
             </div>
-            <p className="rounded-md bg-zinc-100 px-3 py-2 text-sm font-semibold text-zinc-700">
+            <p className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-700 sm:text-sm">
               選択中: {selectedTag?.name ?? "タグなし"}
             </p>
           </div>
 
           {!isTagsReady || !isRecordsReady || !isActiveTimerReady ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
+            <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               データを読み込み中です。
             </p>
           ) : null}
 
           {statusMessage ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+            <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
               {statusMessage}
             </p>
           ) : null}
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:grid-cols-4 lg:grid-cols-8">
             {visibleActiveTags.map((tag) => {
               const isSelected = selectedTag?.id === tag.id;
 
@@ -588,7 +603,7 @@ export default function DashboardPage() {
                   type="button"
                   aria-pressed={isSelected}
                   onClick={() => setSelectedTagId(tag.id)}
-                  className={`flex h-14 min-w-0 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors ${
+                  className={`flex h-11 min-w-0 items-center justify-center gap-2 rounded-md border px-2.5 text-sm font-semibold transition-colors sm:h-12 ${
                     isSelected
                       ? "border-zinc-950 bg-zinc-950 text-white"
                       : "border-zinc-200 bg-zinc-50 text-zinc-800 hover:border-zinc-300 hover:bg-white"
@@ -614,41 +629,57 @@ export default function DashboardPage() {
             </p>
           ) : null}
           {isTagsReady && visibleActiveTags.length === 0 ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
-              活動タグがありません。/tags でタグを追加してください。
-            </p>
+            <div className="mt-3">
+              <EmptyState
+                title="活動タグがありません"
+                description="まずは生活に合わせたタグを作ると、タイマー記録を始められます。"
+                actionHref="/tags"
+                actionLabel="タグを追加する"
+              />
+            </div>
           ) : null}
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr] lg:gap-4">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
             <div>
-              <p className="text-sm font-medium text-zinc-500">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
                 今日の時間配分
               </p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 円グラフ
               </h2>
             </div>
 
-            <div className="mt-4 flex h-[16rem] min-h-[16rem] w-full min-w-0 items-center justify-center overflow-hidden sm:h-[18rem] sm:min-h-[18rem]">
-              <PieChart width={240} height={240}>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={64}
-                  outerRadius={98}
-                  paddingAngle={3}
-                  strokeWidth={0}
-                >
-                  {chartData.map((entry) => (
-                    <Cell key={entry.id} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={ActivityTooltip} />
-              </PieChart>
-            </div>
+            {chartData.length === 0 ? (
+              <div className="mt-3">
+                <EmptyState
+                  title="今日の記録はまだありません"
+                  description="タイマーを止めるか、手動追加するとここに時間配分が表示されます。"
+                  actionHref="/records/new"
+                  actionLabel="記録を追加する"
+                />
+              </div>
+            ) : (
+              <div className="mt-3 flex h-[13.5rem] min-h-[13.5rem] w-full min-w-0 items-center justify-center overflow-hidden sm:mt-4 sm:h-[18rem] sm:min-h-[18rem]">
+                <PieChart width={220} height={220}>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={88}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {chartData.map((entry) => (
+                      <Cell key={entry.id} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={ActivityTooltip} />
+                </PieChart>
+              </div>
+            )}
 
             <div className="grid gap-2 sm:grid-cols-3">
               {chartData.map((entry) => (
@@ -671,11 +702,13 @@ export default function DashboardPage() {
             </div>
           </article>
 
-          <article className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <article className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-zinc-500">今日の履歴</p>
-                <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+                <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                  今日の履歴
+                </p>
+                <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                   今日の活動履歴リスト
                 </h2>
               </div>
@@ -683,20 +716,20 @@ export default function DashboardPage() {
                 type="button"
                 onClick={handleResetRecords}
                 disabled={!isDataReady || isSavingRecord}
-                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 sm:w-auto"
+                className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400 sm:h-11 sm:w-auto"
               >
                 データをリセット
               </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
               {todayRecords.map((record) => {
                 const tag = getTagForRecord(record, tags);
 
                 return (
                   <div
                     key={record.id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-4"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:gap-3 sm:p-4"
                   >
                     <span
                       className="h-3 w-3 rounded-full"
@@ -716,6 +749,14 @@ export default function DashboardPage() {
                   </div>
                 );
               })}
+              {isRecordsReady && todayRecords.length === 0 ? (
+                <EmptyState
+                  title="今日の履歴はまだありません"
+                  description="タグを選んでタイマーを開始するか、手動で最初の記録を追加しましょう。"
+                  actionHref="/records/new"
+                  actionLabel="最初の記録を追加する"
+                />
+              ) : null}
             </div>
           </article>
         </section>

@@ -6,6 +6,7 @@ import {
   deleteSupabaseTimeRecord,
   updateSupabaseTimeRecord,
 } from "../lib/supabase/time-records";
+import { EmptyState } from "../components/empty-state";
 import {
   getSortedActiveTags,
   getTagForRecord,
@@ -349,23 +350,25 @@ export default function RecordsPage() {
   };
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-50 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Time Wallet
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               記録一覧
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div>
-            <p className="text-sm font-medium text-zinc-500">
+            <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
               {sortedRecords.length}件
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+            <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
               保存済みの時間記録
             </h2>
           </div>
@@ -383,13 +386,18 @@ export default function RecordsPage() {
           ) : null}
 
           {isRecordsReady && sortedRecords.length === 0 ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
-              まだ記録がありません
-            </p>
+            <div className="mt-3 sm:mt-4">
+              <EmptyState
+                title="まだ記録がありません"
+                description="タイマーを使うか、手動追加から最初の時間記録を残しましょう。"
+                actionHref="/records/new"
+                actionLabel="最初の記録を追加する"
+              />
+            </div>
           ) : null}
 
           {isRecordsReady && sortedRecords.length > 0 ? (
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
               {sortedRecords.map((record) => {
                 const tag = getTagForRecord(record, tags);
                 const tagName = tag?.name ?? record.tag;
@@ -405,14 +413,14 @@ export default function RecordsPage() {
                 return (
                   <article
                     key={record.id}
-                    className="rounded-md border border-zinc-200 bg-zinc-50 p-4"
+                    className="rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:p-4"
                   >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-zinc-950">
+                        <p className="text-xs font-semibold text-zinc-500 sm:text-sm sm:text-zinc-950">
                           {getRecordDate(record)}
                         </p>
-                        <div className="mt-2 flex items-center gap-2">
+                        <div className="mt-1.5 flex items-center gap-2">
                           <span
                             className="h-3 w-3 rounded-full"
                             style={{ backgroundColor: tagColor }}
@@ -423,7 +431,7 @@ export default function RecordsPage() {
                         </div>
                       </div>
                       <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:items-center">
-                        <p className="flex h-11 items-center justify-center rounded-md bg-white px-3 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
+                        <p className="flex h-9 items-center justify-center rounded-md bg-white px-3 text-xs font-semibold text-zinc-700 ring-1 ring-zinc-200 sm:h-11 sm:text-sm">
                           {formatMinutes(
                             record.durationMinutes ?? record.minutes,
                           )}
@@ -432,7 +440,7 @@ export default function RecordsPage() {
                           type="button"
                           onClick={() => handleStartEdit(record)}
                           disabled={isSaving}
-                          className="h-11 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-100"
+                          className="h-9 rounded-md border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 sm:h-11 sm:text-sm"
                         >
                           編集
                         </button>
@@ -440,7 +448,7 @@ export default function RecordsPage() {
                           type="button"
                           onClick={() => void handleDeleteRecord(record)}
                           disabled={isSaving}
-                          className="h-11 rounded-md border border-red-200 bg-white px-3 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
+                          className="h-9 rounded-md border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 sm:h-11 sm:text-sm"
                         >
                           削除
                         </button>
@@ -448,8 +456,8 @@ export default function RecordsPage() {
                     </div>
 
                     {isEditing && editDraft ? (
-                      <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3">
-                        <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3 sm:mt-4">
+                        <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
                           <label className="flex flex-col gap-2">
                             <span className="text-sm font-semibold text-zinc-700">
                               日付
@@ -460,7 +468,7 @@ export default function RecordsPage() {
                               onChange={(event) =>
                                 updateEditDraft("date", event.target.value)
                               }
-                              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white sm:h-12"
                             />
                           </label>
 
@@ -473,7 +481,7 @@ export default function RecordsPage() {
                               onChange={(event) =>
                                 updateEditDraft("tagId", event.target.value)
                               }
-                              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white sm:h-12"
                             >
                               {selectableTags.map((selectableTag) => (
                                 <option
@@ -487,7 +495,7 @@ export default function RecordsPage() {
                           </label>
                         </div>
 
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-2 grid gap-2 sm:mt-3 sm:grid-cols-2 sm:gap-3">
                           <label className="flex flex-col gap-2">
                             <span className="text-sm font-semibold text-zinc-700">
                               開始時刻
@@ -498,7 +506,7 @@ export default function RecordsPage() {
                               onChange={(event) =>
                                 updateEditDraft("start", event.target.value)
                               }
-                              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white sm:h-12"
                             />
                           </label>
 
@@ -512,19 +520,19 @@ export default function RecordsPage() {
                               onChange={(event) =>
                                 updateEditDraft("end", event.target.value)
                               }
-                              className="h-12 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white"
+                              className="h-11 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-base font-medium text-zinc-950 outline-none transition-colors focus:border-zinc-400 focus:bg-white sm:h-12"
                             />
                           </label>
                         </div>
 
-                        <div className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700">
+                        <div className="mt-2 rounded-md bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 sm:mt-3">
                           記録時間:{" "}
                           {draftDuration === null
                             ? "-"
                             : formatMinutes(draftDuration)}
                         </div>
 
-                        <label className="mt-3 flex flex-col gap-2">
+                        <label className="mt-2 flex flex-col gap-2 sm:mt-3">
                           <span className="text-sm font-semibold text-zinc-700">
                             メモ
                           </span>
@@ -533,8 +541,8 @@ export default function RecordsPage() {
                             onChange={(event) =>
                               updateEditDraft("memo", event.target.value)
                             }
-                            rows={3}
-                            className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+                            rows={2}
+                            className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-base font-medium text-zinc-950 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white sm:py-3"
                             placeholder="必要に応じてメモを残す"
                           />
                         </label>
@@ -545,12 +553,12 @@ export default function RecordsPage() {
                           </p>
                         ) : null}
 
-                        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row">
                           <button
                             type="button"
                             onClick={() => void handleSaveEdit(record)}
                             disabled={isSaving}
-                            className="h-12 rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                            className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:h-12 sm:text-base"
                           >
                             {isSaving ? "保存中" : "保存する"}
                           </button>
@@ -558,14 +566,14 @@ export default function RecordsPage() {
                             type="button"
                             onClick={handleCancelEdit}
                             disabled={isSaving}
-                            className="h-12 rounded-md border border-zinc-200 bg-white px-4 text-base font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+                            className="h-10 rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:h-12 sm:text-base"
                           >
                             キャンセル
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+                      <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:mt-4 sm:grid-cols-4 sm:gap-3">
                         <div className="rounded-md bg-white px-3 py-2 ring-1 ring-zinc-200">
                           <dt className="text-xs font-medium text-zinc-500">
                             開始時刻

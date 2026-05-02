@@ -6,6 +6,7 @@ import {
   type ActivityRecord,
   type ActivityTag,
 } from "../lib/time-wallet-storage";
+import { EmptyState } from "../components/empty-state";
 import { useActivityTagsSource } from "../lib/use-activity-tags-source";
 import { useTimeRecordsSource } from "../lib/use-time-records-source";
 
@@ -192,18 +193,20 @@ export default function CalendarPage() {
   };
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-100 text-zinc-950">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen w-full overflow-x-hidden bg-zinc-50 text-zinc-950">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-5 sm:px-6 sm:py-5 lg:px-8">
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-zinc-500">Time Wallet</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Time Wallet
+            </p>
+            <h1 className="mt-1 text-xl font-semibold tracking-normal text-zinc-950 sm:text-4xl">
               カレンダー
             </h1>
           </div>
         </header>
 
-        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           {!isTagsReady || !isRecordsReady ? (
             <p className="mb-4 rounded-md bg-zinc-50 px-3 py-2 text-sm text-zinc-500">
               時間記録を読み込み中です。
@@ -220,29 +223,29 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => handleChangeMonth(-1)}
-              className="h-11 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:px-4"
+              className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:h-11 sm:px-4"
             >
               前月
             </button>
-            <h2 className="text-center text-lg font-semibold text-zinc-950 sm:text-xl">
+            <h2 className="text-center text-base font-semibold text-zinc-950 sm:text-xl">
               {formatMonthLabel(monthDate)}
             </h2>
             <button
               type="button"
               onClick={() => handleChangeMonth(1)}
-              className="h-11 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:px-4"
+              className="h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 sm:h-11 sm:px-4"
             >
               翌月
             </button>
           </div>
 
-          <div className="mt-5 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-zinc-500 sm:gap-2">
+          <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[0.68rem] font-semibold text-zinc-500 sm:mt-5 sm:gap-2 sm:text-xs">
             {weekDays.map((weekDay) => (
               <div key={weekDay}>{weekDay}</div>
             ))}
           </div>
 
-          <div className="mt-2 grid grid-cols-7 gap-1 sm:gap-2">
+          <div className="mt-1.5 grid grid-cols-7 gap-1 sm:mt-2 sm:gap-2">
             {monthCells.map((cell) => {
               const summary = dailySummaries.get(cell.dateValue);
               const totalMinutes = summary?.totalMinutes ?? 0;
@@ -257,7 +260,7 @@ export default function CalendarPage() {
                   key={cell.dateValue}
                   type="button"
                   onClick={() => setSelectedDate(cell.dateValue)}
-                  className={`min-h-[4.75rem] rounded-md border p-1.5 text-left transition-colors sm:min-h-24 sm:p-2 ${
+                  className={`min-h-[4.1rem] rounded-md border p-1 text-left transition-colors sm:min-h-24 sm:p-2 ${
                     isSelected
                       ? "border-zinc-950 bg-zinc-950 text-white"
                       : hasRecords
@@ -267,7 +270,7 @@ export default function CalendarPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
-                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 sm:text-sm ${
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.68rem] font-semibold sm:h-7 sm:w-7 sm:text-sm ${
                         isToday && !isSelected
                           ? "bg-emerald-100 text-emerald-700"
                           : ""
@@ -283,7 +286,7 @@ export default function CalendarPage() {
                     ) : null}
                   </div>
                   {hasRecords ? (
-                    <div className="mt-1 space-y-1 sm:mt-2">
+                    <div className="mt-0.5 space-y-0.5 sm:mt-2 sm:space-y-1">
                       <p className="text-[0.68rem] font-semibold leading-tight sm:text-xs">
                         {formatMinutes(totalMinutes)}
                       </p>
@@ -292,7 +295,7 @@ export default function CalendarPage() {
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-1 text-[0.65rem] opacity-50 sm:mt-2 sm:text-xs">
+                    <p className="mt-0.5 text-[0.62rem] opacity-50 sm:mt-2 sm:text-xs">
                       未記録
                     </p>
                   )}
@@ -302,11 +305,13 @@ export default function CalendarPage() {
           </div>
         </section>
 
-        <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-zinc-200 sm:p-5">
+        <section className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-zinc-200 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-zinc-500">日別詳細</p>
-              <h2 className="mt-1 text-xl font-semibold text-zinc-950">
+              <p className="text-xs font-semibold text-zinc-500 sm:text-sm">
+                日別詳細
+              </p>
+              <h2 className="mt-0.5 text-lg font-semibold text-zinc-950 sm:text-xl">
                 {formatDateLabel(selectedDate)}
               </h2>
             </div>
@@ -329,18 +334,23 @@ export default function CalendarPage() {
           </div>
 
           {selectedRecords.length === 0 ? (
-            <p className="mt-4 rounded-md bg-zinc-50 px-3 py-3 text-sm text-zinc-500">
-              この日の記録はありません
-            </p>
+            <div className="mt-3 sm:mt-4">
+              <EmptyState
+                title="この日の記録はありません"
+                description="手動追加で過去の記録を入れると、この日別詳細に反映されます。"
+                actionHref="/records/new"
+                actionLabel="記録を追加する"
+              />
+            </div>
           ) : (
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:gap-3">
               {selectedRecords.map((record) => {
                 const tag = getTagForRecord(record, tags);
 
                 return (
                   <div
                     key={record.id}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-4"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 sm:gap-3 sm:p-4"
                   >
                     <span
                       className="h-3 w-3 rounded-full"

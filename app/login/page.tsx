@@ -83,8 +83,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="w-full bg-zinc-100 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-      <section className="mx-auto grid min-h-[calc(100svh-8rem)] w-full max-w-6xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(420px,480px)]">
+    <main className="w-full bg-zinc-50 px-3 py-3 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <section className="mx-auto grid min-h-[calc(100svh-7rem)] w-full max-w-6xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(420px,480px)]">
         <div className="hidden bg-zinc-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
           <div>
             <p className="text-base font-semibold text-zinc-300">Time Wallet</p>
@@ -100,24 +100,24 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="flex w-full items-center justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+        <div className="flex w-full items-center justify-center px-4 py-6 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
           <div className="w-full max-w-[480px]">
-            <div className="mb-7">
-              <p className="text-base font-semibold text-zinc-500">
+            <div className="mb-5 sm:mb-7">
+              <p className="text-sm font-semibold text-zinc-500 sm:text-base">
                 Time Wallet
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-zinc-950">
+              <h1 className="mt-1 text-2xl font-bold text-zinc-950 sm:mt-2 sm:text-3xl">
                 {isSignIn ? "ログイン" : "新規登録"}
               </h1>
             </div>
 
             {!isConfigured && (
-              <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-base font-medium leading-7 text-amber-800">
+              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-medium leading-6 text-amber-800 sm:mb-5 sm:px-4 sm:py-3 sm:text-base sm:leading-7">
                 `.env.local` に Supabase のURLとanon keyを設定するとログインできます。
               </div>
             )}
 
-            <div className="mb-6 grid grid-cols-2 rounded-lg bg-zinc-100 p-1">
+            <div className="mb-4 grid grid-cols-2 rounded-lg bg-zinc-100 p-1 sm:mb-6">
               <button
                 type="button"
                 onClick={() => {
@@ -125,7 +125,7 @@ export default function LoginPage() {
                   setErrorMessage("");
                   setSuccessMessage("");
                 }}
-                className={`min-h-12 rounded-md px-3 text-base font-semibold transition-colors ${
+                className={`min-h-10 rounded-md px-3 text-sm font-semibold transition-colors sm:min-h-12 sm:text-base ${
                   isSignIn
                     ? "bg-white text-zinc-950 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-950"
@@ -140,7 +140,7 @@ export default function LoginPage() {
                   setErrorMessage("");
                   setSuccessMessage("");
                 }}
-                className={`min-h-12 rounded-md px-3 text-base font-semibold transition-colors ${
+                className={`min-h-10 rounded-md px-3 text-sm font-semibold transition-colors sm:min-h-12 sm:text-base ${
                   !isSignIn
                     ? "bg-white text-zinc-950 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-950"
@@ -150,11 +150,11 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <form className="space-y-5" onSubmit={handleSubmit}>
+            <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
               <div>
                 <label
                   htmlFor="email"
-                  className="mb-2 block text-base font-semibold text-zinc-700"
+                  className="mb-1.5 block text-sm font-semibold text-zinc-700 sm:mb-2 sm:text-base"
                 >
                   メールアドレス
                 </label>
@@ -164,14 +164,14 @@ export default function LoginPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
-                  className="min-h-[3.25rem] w-full rounded-md border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition-colors focus:border-zinc-950"
+                  className="min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-base text-zinc-950 outline-none transition-colors focus:border-zinc-950 sm:min-h-[3.25rem] sm:px-4"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="password"
-                  className="mb-2 block text-base font-semibold text-zinc-700"
+                  className="mb-1.5 block text-sm font-semibold text-zinc-700 sm:mb-2 sm:text-base"
                 >
                   パスワード
                 </label>
@@ -181,18 +181,18 @@ export default function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete={isSignIn ? "current-password" : "new-password"}
-                  className="min-h-[3.25rem] w-full rounded-md border border-zinc-300 bg-white px-4 text-base text-zinc-950 outline-none transition-colors focus:border-zinc-950"
+                  className="min-h-11 w-full rounded-md border border-zinc-300 bg-white px-3 text-base text-zinc-950 outline-none transition-colors focus:border-zinc-950 sm:min-h-[3.25rem] sm:px-4"
                 />
               </div>
 
               {errorMessage && (
-                <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-base font-medium leading-7 text-red-700">
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-medium leading-6 text-red-700 sm:px-4 sm:py-3 sm:text-base sm:leading-7">
                   {errorMessage}
                 </p>
               )}
 
               {successMessage && (
-                <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-medium leading-7 text-emerald-700">
+                <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm font-medium leading-6 text-emerald-700 sm:px-4 sm:py-3 sm:text-base sm:leading-7">
                   {successMessage}
                 </p>
               )}
@@ -200,7 +200,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={!isConfigured || isSubmitting}
-                className="min-h-[3.25rem] w-full rounded-md bg-zinc-950 px-4 text-base font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                className="min-h-11 w-full rounded-md bg-zinc-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:min-h-[3.25rem] sm:text-base"
               >
                 {isSubmitting
                   ? "処理中..."
@@ -210,10 +210,10 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-6 flex justify-center">
+            <div className="mt-4 flex justify-center sm:mt-6">
               <Link
                 href="/dashboard"
-                className="min-h-12 rounded-md px-4 py-3 text-base font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+                className="min-h-10 rounded-md px-4 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 sm:min-h-12 sm:py-3 sm:text-base"
               >
                 ログインせずに使う
               </Link>

@@ -11,6 +11,7 @@ import {
 type NavigationItem = {
   href: string;
   label: string;
+  mobileLabel: string;
   isActive: (pathname: string) => boolean;
 };
 
@@ -23,31 +24,37 @@ const navigationItems: NavigationItem[] = [
   {
     href: "/dashboard",
     label: "ダッシュボード",
+    mobileLabel: "今日",
     isActive: (pathname) => pathname === "/dashboard",
   },
   {
     href: "/records",
     label: "記録一覧",
+    mobileLabel: "記録",
     isActive: (pathname) => pathname === "/records",
   },
   {
     href: "/records/new",
     label: "手動追加",
+    mobileLabel: "追加",
     isActive: (pathname) => pathname === "/records/new",
   },
   {
     href: "/calendar",
     label: "カレンダー",
+    mobileLabel: "暦",
     isActive: (pathname) => pathname === "/calendar",
   },
   {
     href: "/analytics",
     label: "分析",
+    mobileLabel: "分析",
     isActive: (pathname) => pathname === "/analytics",
   },
   {
     href: "/tags",
     label: "タグ管理",
+    mobileLabel: "タグ",
     isActive: (pathname) => pathname === "/tags",
   },
 ];
@@ -61,10 +68,10 @@ function getLinkClassName(isActive: boolean) {
 }
 
 function getMobileLinkClassName(isActive: boolean) {
-  return `flex min-h-12 items-center justify-center rounded-lg px-2 text-center text-[0.78rem] font-semibold leading-tight transition-colors ${
+  return `flex min-h-10 items-center justify-center rounded-md px-1 text-center text-[0.72rem] font-semibold leading-tight transition-colors ${
     isActive
       ? "bg-zinc-950 text-white"
-      : "bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+      : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950"
   }`;
 }
 
@@ -142,7 +149,7 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
       <span
         className={
           isMobile
-            ? "mb-2 flex min-h-14 items-center justify-center rounded-lg bg-zinc-50 px-3 text-sm font-semibold text-zinc-500"
+            ? "mb-1 flex min-h-8 items-center justify-center rounded-md bg-zinc-50 px-2 text-xs font-semibold text-zinc-500"
             : "flex min-h-12 items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3.5 text-[0.95rem] font-semibold text-zinc-500"
         }
       >
@@ -156,22 +163,22 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
       <div
         className={
           isMobile
-            ? "mb-2 flex min-h-16 items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
+            ? "mb-1 flex min-h-9 items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1"
             : "flex min-w-[19rem] max-w-full items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
         }
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-amber-950">
+          <span className="block text-xs font-semibold text-amber-950 sm:text-sm">
             この端末に保存中
           </span>
-          <span className="block truncate text-xs font-medium text-amber-700">
+          <span className="hidden truncate text-xs font-medium text-amber-700 min-[390px]:block">
             ログインするとクラウド保存できます
           </span>
         </span>
         <Link
           href="/login"
           aria-current={isLoginActive ? "page" : undefined}
-          className={`flex min-h-10 shrink-0 items-center justify-center rounded-md px-3 text-sm font-semibold transition-colors ${
+          className={`flex min-h-8 shrink-0 items-center justify-center rounded-md px-2.5 text-xs font-semibold transition-colors sm:min-h-10 sm:px-3 sm:text-sm ${
             isLoginActive
               ? "bg-zinc-950 text-white"
               : "bg-white text-amber-900 ring-1 ring-amber-200 hover:bg-amber-100"
@@ -187,15 +194,15 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
     <div
       className={
         isMobile
-          ? "mb-2 flex min-h-16 items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
+          ? "mb-1 flex min-h-9 items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1"
           : "flex min-w-[20rem] max-w-full items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2"
       }
     >
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-emerald-950">
+        <span className="block text-xs font-semibold text-emerald-950 sm:text-sm">
           クラウドに保存中
         </span>
-        <span className="block truncate text-xs font-medium text-emerald-700">
+        <span className="hidden truncate text-xs font-medium text-emerald-700 min-[390px]:block">
           {email}
         </span>
       </span>
@@ -205,7 +212,7 @@ function AuthControls({ pathname, variant }: AuthControlsProps) {
         disabled={isSigningOut}
         className={
           isMobile
-            ? "min-h-10 shrink-0 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+            ? "min-h-8 shrink-0 rounded-md bg-zinc-950 px-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
             : "min-h-10 shrink-0 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
         }
       >
@@ -253,10 +260,10 @@ export function AppNavigation() {
 
       <nav
         aria-label="主要画面"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-3 pb-3 pt-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-6px_18px_rgba(24,24,27,0.08)] backdrop-blur sm:hidden"
       >
         <AuthControls pathname={pathname} variant="mobile" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-6 gap-1">
           {navigationItems.map((item) => {
             const isActive = item.isActive(pathname);
 
@@ -267,7 +274,7 @@ export function AppNavigation() {
                 aria-current={isActive ? "page" : undefined}
                 className={getMobileLinkClassName(isActive)}
               >
-                {item.label}
+                {item.mobileLabel}
               </Link>
             );
           })}
